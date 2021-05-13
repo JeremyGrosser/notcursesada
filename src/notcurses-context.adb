@@ -51,8 +51,7 @@ package body Notcurses.Context is
       use System.OS_Interface;
       NI          : aliased Thin.ncinput;
       Signal_Mask : aliased sigset_t;
-      Char        : Wide_Wide_Character;
-      pragma Unreferenced (Char);
+      Char        : Wide_Wide_Character with Unreferenced;
    begin
       if sigemptyset (Signal_Mask'Access) /= 0 then
          raise Notcurses_Error with "Failed to initialize empty signal mask for getc";

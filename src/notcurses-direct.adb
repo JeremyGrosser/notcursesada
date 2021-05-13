@@ -5,7 +5,7 @@
 --
 with Interfaces.C.Strings; use Interfaces.C.Strings;
 with Interfaces.C; use Interfaces.C;
-with Interfaces; use Interfaces;
+with Interfaces;
 
 package body Notcurses.Direct is
    procedure Initialize
@@ -54,13 +54,15 @@ package body Notcurses.Direct is
       (This : Notcurses_Direct;
        Str  : String)
    is
-      Channels : constant Unsigned_64 := 0;
+      Channels : constant Interfaces.Unsigned_64 := 0;
       Chars    : chars_ptr := New_String (Str);
       Result   : int;
-      pragma Unreferenced (Result);
    begin
       Result := Direct_Thin.ncdirect_putstr (This, Channels, Chars);
       Free (Chars);
+      if Result < 0 then
+         raise Notcurses_Error with "Failed to direct put string";
+      end if;
    end Put;
 
    procedure Stop

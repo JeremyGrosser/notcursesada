@@ -48,7 +48,12 @@ private
 
    Default_Context : Notcurses_Context := null;
 
-   function To_Ada is new Ada.Unchecked_Conversion (Thin.ncinput, Notcurses_Input);
-   function To_C   is new Ada.Unchecked_Conversion (Notcurses_Input, Thin.ncinput);
+   function To_Ada is new Ada.Unchecked_Conversion
+      (Source => Thin.ncinput,
+       Target => Notcurses_Input);
+
+   function To_C   is new Ada.Unchecked_Conversion
+      (Source => Notcurses_Input,
+       Target => Thin.ncinput);
 
 end Notcurses;
