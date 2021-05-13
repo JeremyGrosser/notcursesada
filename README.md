@@ -10,7 +10,8 @@ Tested with gnat-10 on Debian and notcurses 2.3.0. Other toolchain and library v
 # Usage
 Add notcursesada to your project with [Alire](https://alire.ada.dev/)
 
-    alr with notcursesada --use=https://github.com/JeremyGrosser/notcursesada
+    git clone https://github.com/JeremyGrosser/notcursesada
+    alr with notcursesada --use=notcursesada/
 
 See [tests.adb](tests/tests.adb) for examples.
 
