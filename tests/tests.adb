@@ -110,12 +110,20 @@ package body Tests is
          Erase_Region (Plane,
             Start => (X => 2, Y => 2),
             Size  => (X => Dims.X - 2, Y => Dims.Y - 2));
-         Put (Plane, "Id:     " & Input.Id'Wide_Wide_Image,
+         Put (Plane, "Id:",
             X => 2, Y => 2);
-         Put (Plane, "XY:     " & Input.X'Wide_Wide_Image & "," & Input.Y'Wide_Wide_Image,
+         Put (Plane, Input.Id'Wide_Wide_Image,
+            X => 12, Y => 2);
+
+         Put (Plane, "XY:",
             X => 2, Y => 3);
-         Put (Plane, "Seqnum: " & Input.Seqnum'Wide_Wide_Image,
+         Put (Plane, Input.X'Wide_Wide_Image & "," & Input.Y'Wide_Wide_Image,
+            X => 11, Y => 3);
+
+         Put (Plane, "Seqnum:",
             X => 2, Y => 4);
+         Put (Plane, Input.Seqnum'Wide_Wide_Image,
+            X => 11, Y => 4);
 
          --  TODO: the modifiers never seem to be TRUE and sometimes have incorrect values
          --  if Input.Alt then
