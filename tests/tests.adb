@@ -91,12 +91,10 @@ package body Tests is
       use Notcurses.Context;
       Plane   : constant Notcurses_Plane := Standard_Plane;
       Context : constant Notcurses_Context := Notcurses.Plane.Context (Plane);
-      Prompt  : constant Wide_Wide_String := "Enter a string: ";
       Dims    : constant Coordinate := Dimensions (Plane);
       Input   : Notcurses_Input;
    begin
       Set_Background_RGB (Plane, R => 0, G => 0, B => 0);
-      Put (Plane, Prompt);
       Enable_Cursor (Context, X => 0, Y => 1);
       Enable_Mouse (Context);
 
