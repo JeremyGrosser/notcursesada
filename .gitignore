@@ -1,0 +1,7 @@
+bin/
+obj/
+alire/
+*.ali
+*.o
+*.a
+*.swp

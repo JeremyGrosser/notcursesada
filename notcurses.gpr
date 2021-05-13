@@ -1,0 +1,7 @@
+library project Notcurses is
+    for Languages use ("Ada", "C");
+    for Library_Name use "notcurses";
+    for Library_Kind use "dynamic";
+    for Library_Dir use "lib";
+    for Externally_Built use "true";
+end Notcurses;

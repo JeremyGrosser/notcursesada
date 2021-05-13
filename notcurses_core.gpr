@@ -1,0 +1,7 @@
+library project Notcurses_Core is
+    for Languages use ("Ada", "C");
+    for Library_Name use "notcurses-core";
+    for Library_Kind use "dynamic";
+    for Library_Dir use "lib";
+    for Externally_Built use "true";
+end Notcurses_Core;

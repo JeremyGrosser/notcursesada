@@ -1,0 +1,7 @@
+name = "notcursesada"
+description = "notcurses text user interface library binding"
+version = "0.0.1"
+
+authors = ["Jeremy Grosser"]
+maintainers = ["Jeremy Grosser <jeremy@synack.me>"]
+maintainers-logins = ["JeremyGrosser"]

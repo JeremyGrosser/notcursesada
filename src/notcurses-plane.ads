@@ -1,0 +1,42 @@
+--
+--  Copyright 2021 (C) Jeremy Grosser <jeremy@synack.me>
+--
+--  SPDX-License-Identifier: Apache-2.0
+--
+with Interfaces; use Interfaces;
+
+package Notcurses.Plane is
+
+   function Standard_Plane
+      return Notcurses_Plane;
+
+   function Context
+      (Plane : Notcurses_Plane)
+      return Notcurses_Context;
+
+   function Dimensions
+      (Plane : Notcurses_Plane)
+      return Coordinate;
+
+   procedure Erase
+      (Plane : Notcurses_Plane);
+
+   procedure Erase_Region
+      (Plane : Notcurses_Plane;
+       Start : Coordinate;
+       Size  : Coordinate);
+
+   procedure Put
+      (Plane : Notcurses_Plane;
+       Str   : Wide_Wide_String;
+       Y, X  : Integer := -1);
+
+   procedure Set_Background_RGB
+      (Plane   : Notcurses_Plane;
+       R, G, B : Unsigned_8);
+
+   procedure Set_Foreground_RGB
+      (Plane   : Notcurses_Plane;
+       R, G, B : Unsigned_8);
+
+end Notcurses.Plane;
