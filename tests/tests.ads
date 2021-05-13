@@ -9,6 +9,7 @@ package Tests is
    procedure Test_Colors;
    procedure Test_Dimensions;
    procedure Test_Input;
+   procedure Test_Plane_Split;
 
    procedure Test_Direct;
 end Tests;

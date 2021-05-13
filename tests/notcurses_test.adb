@@ -18,6 +18,7 @@ begin
       Test_Hello_World;
       Test_Colors;
       Test_Dimensions;
+      Test_Plane_Split;
       Test_Input;
       Notcurses.Context.Stop;
    exception

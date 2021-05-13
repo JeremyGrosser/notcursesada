@@ -143,6 +143,37 @@ package body Tests is
       end loop;
    end Test_Input;
 
+   procedure Test_Plane_Split is
+      use Notcurses;
+      use Notcurses.Plane;
+
+      Left  : constant Notcurses_Plane := Create_Sub_Plane
+         (Plane    => Standard_Plane,
+          Position => (0, 0),
+          Size     => Dimensions (Standard_Plane));
+
+      Right : constant Notcurses_Plane := Create_Sub_Plane
+         (Plane    => Standard_Plane,
+          Position =>
+            (X => Dimensions (Standard_Plane).X / 2,
+             Y => 0),
+          Size     =>
+            (X => Dimensions (Standard_Plane).X / 2,
+             Y => Dimensions (Standard_Plane).Y));
+   begin
+      Set_Foreground_RGB (Left, 0, 255, 0);
+      Put (Left, "Left");
+
+      Set_Foreground_RGB (Right, 255, 0, 0);
+      Put (Right, "Right");
+      Notcurses.Context.Render (Notcurses.Plane.Context (Standard_Plane));
+      delay 1.0;
+
+      Destroy (Left);
+      Destroy (Right);
+      Erase (Standard_Plane);
+   end Test_Plane_Split;
+
    procedure Test_Direct is
       use Notcurses.Direct;
       Plane : Notcurses_Direct;

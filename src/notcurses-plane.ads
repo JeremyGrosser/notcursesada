@@ -18,6 +18,15 @@ package Notcurses.Plane is
       (Plane : Notcurses_Plane)
       return Coordinate;
 
+   function Create_Sub_Plane
+      (Plane    : Notcurses_Plane;
+       Position : Coordinate;
+       Size     : Coordinate)
+      return Notcurses_Plane;
+
+   procedure Destroy
+      (Plane : Notcurses_Plane);
+
    procedure Erase
       (Plane : Notcurses_Plane);
 
