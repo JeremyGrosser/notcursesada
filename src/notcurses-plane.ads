@@ -25,7 +25,7 @@ package Notcurses.Plane is
       return Notcurses_Plane;
 
    procedure Destroy
-      (Plane : Notcurses_Plane);
+      (Plane : in out Notcurses_Plane);
 
    procedure Erase
       (Plane : Notcurses_Plane);

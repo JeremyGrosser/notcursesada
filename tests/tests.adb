@@ -10,6 +10,7 @@ with Interfaces; use Interfaces;
 with Notcurses.Context;
 with Notcurses.Direct;
 with Notcurses.Plane;
+with Notcurses.Progress_Bar;
 with Notcurses;
 
 package body Tests is
@@ -145,12 +146,12 @@ package body Tests is
       use Notcurses;
       use Notcurses.Plane;
 
-      Left  : constant Notcurses_Plane := Create_Sub_Plane
+      Left  : Notcurses_Plane := Create_Sub_Plane
          (Plane    => Standard_Plane,
           Position => (0, 0),
           Size     => Dimensions (Standard_Plane));
 
-      Right : constant Notcurses_Plane := Create_Sub_Plane
+      Right : Notcurses_Plane := Create_Sub_Plane
          (Plane    => Standard_Plane,
           Position =>
             (X => Dimensions (Standard_Plane).X / 2,
@@ -171,6 +172,28 @@ package body Tests is
       Destroy (Right);
       Erase (Standard_Plane);
    end Test_Plane_Split;
+
+   procedure Test_Progress_Bar is
+      use Notcurses.Progress_Bar;
+      use Notcurses.Plane;
+      use Notcurses;
+      Context : constant Notcurses_Context := Notcurses.Plane.Context (Standard_Plane);
+      Plane   : constant Notcurses_Plane := Create_Sub_Plane
+         (Plane    => Standard_Plane,
+          Position => (0, 0),
+          Size     =>
+            (X => Dimensions (Standard_Plane).X,
+             Y => 1));
+      Bar : Notcurses_Progress_Bar := Create (Plane);
+   begin
+      for I in 1 .. 100 loop
+         Set_Progress (Bar, Progress_Value (I) / 100.0);
+         delay 0.01;
+         Notcurses.Context.Render (Context);
+      end loop;
+      Destroy (Bar);
+      Erase (Standard_Plane);
+   end Test_Progress_Bar;
 
    procedure Test_Direct is
       use Notcurses.Direct;

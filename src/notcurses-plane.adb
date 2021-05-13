@@ -66,12 +66,13 @@ package body Notcurses.Plane is
    end Create_Sub_Plane;
 
    procedure Destroy
-      (Plane : Notcurses_Plane)
+      (Plane : in out Notcurses_Plane)
    is
    begin
       if Thin.ncplane_destroy (Plane) /= 0 then
          raise Notcurses_Error with "Failed to destroy plane";
       end if;
+      Plane := null;
    end Destroy;
 
    procedure Erase
