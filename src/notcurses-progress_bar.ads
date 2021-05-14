@@ -2,7 +2,7 @@ with Interfaces.C;
 
 package Notcurses.Progress_Bar is
    type Notcurses_Progress_Bar is private;
-   type Progress_Value is new Interfaces.C.double;
+   subtype Progress_Value is Interfaces.C.double range 0.0 .. 1.0;
 
    function Create
       (Plane        : Notcurses_Plane;

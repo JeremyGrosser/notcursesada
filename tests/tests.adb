@@ -187,7 +187,7 @@ package body Tests is
       Bar : Notcurses_Progress_Bar := Create (Plane);
    begin
       for I in 1 .. 100 loop
-         Set_Progress (Bar, Progress_Value (I) / 100.0);
+         Set_Progress (Bar, Progress_Value (Float (I) / 100.0));
          delay 0.01;
          Notcurses.Context.Render (Context);
       end loop;
