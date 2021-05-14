@@ -23,6 +23,10 @@ package Notcurses.Context is
       (Context : Notcurses_Context)
       return Notcurses_Input;
 
+   function Palette_Size
+      (Context : Notcurses_Context)
+      return Natural;
+
    procedure Stop
       (Context : in out Notcurses_Context);
 

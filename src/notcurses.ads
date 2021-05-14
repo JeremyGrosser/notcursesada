@@ -4,9 +4,9 @@
 --  SPDX-License-Identifier: Apache-2.0
 --
 with Ada.Unchecked_Conversion;
+with Interfaces;
 with Interfaces.C.Strings;
 with Interfaces.C;
-with Interfaces;
 with Notcurses_Thin;
 
 package Notcurses is

@@ -111,23 +111,54 @@ package body Notcurses.Plane is
       end if;
    end Put;
 
+   procedure Set_Background
+      (Plane   : Notcurses_Plane;
+       Channel : Notcurses_Channel)
+   is
+      Result : Unsigned_64
+         with Unreferenced;
+   begin
+      Result := Thin.ncplane_set_bchannel (Plane, To_C (Channel));
+   end Set_Background;
+
+   procedure Set_Foreground
+      (Plane   : Notcurses_Plane;
+       Channel : Notcurses_Channel)
+   is
+      Result : Unsigned_64
+         with Unreferenced;
+   begin
+      Result := Thin.ncplane_set_fchannel (Plane, To_C (Channel));
+   end Set_Foreground;
+
    procedure Set_Background_RGB
       (Plane   : Notcurses_Plane;
-       R, G, B : Unsigned_8)
+       R, G, B : Color_Type)
    is
+      Channel : constant Notcurses_Channel :=
+         (R           => R,
+          G           => G,
+          B           => B,
+          Not_Default => True,
+          Use_Palette => False,
+          Alpha       => Opaque);
    begin
-      if Thin.ncplane_set_bg_rgb8 (Plane, int (R), int (G), int (B)) /= 0 then
-         raise Notcurses_Error with "Failed to set plane background color";
-      end if;
+      Set_Background (Plane, Channel);
    end Set_Background_RGB;
 
    procedure Set_Foreground_RGB
       (Plane   : Notcurses_Plane;
-       R, G, B : Unsigned_8)
+       R, G, B : Color_Type)
    is
+      Channel : constant Notcurses_Channel :=
+         (R           => R,
+          G           => G,
+          B           => B,
+          Not_Default => True,
+          Use_Palette => False,
+          Alpha       => Opaque);
    begin
-      if Thin.ncplane_set_fg_rgb8 (Plane, int (R), int (G), int (B)) /= 0 then
-         raise Notcurses_Error with "Failed to set plane foreground color";
-      end if;
+      Set_Foreground (Plane, Channel);
    end Set_Foreground_RGB;
+
 end Notcurses.Plane;

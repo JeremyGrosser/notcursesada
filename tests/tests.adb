@@ -6,11 +6,11 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Characters.Wide_Wide_Latin_1;
 with Ada.Exceptions;
-with Interfaces; use Interfaces;
 with Notcurses.Context;
 with Notcurses.Direct;
 with Notcurses.Plane;
 with Notcurses.Progress_Bar;
+with Notcurses.Channel;
 with Notcurses;
 
 package body Tests is
@@ -56,14 +56,56 @@ package body Tests is
       Notcurses.Plane.Erase (Plane);
    end Test_Colors;
 
+   procedure Test_Palette is
+      use Notcurses;
+      use Notcurses.Plane;
+      use Notcurses.Channel;
+
+      Plane        : constant Notcurses_Plane := Standard_Plane;
+      Context      : constant Notcurses_Context := Notcurses.Plane.Context (Plane);
+      Dims         : constant Coordinate := Dimensions (Plane);
+      Palette_Size : constant Natural := Notcurses.Context.Palette_Size (Context);
+      Point        : Coordinate := (0, 0);
+      Channel      : Notcurses_Channel :=
+         (Use_Palette => True,
+          Palette     => 0,
+          Alpha       => Opaque,
+          Not_Default => True);
+   begin
+      for I in 0 .. Palette_Size loop
+         Channel.Palette := Palette_Index (I);
+         Set_Background (Plane, Channel);
+
+         Put (Plane, " ",
+            Y => Point.Y,
+            X => Point.X);
+
+         Point.X := Point.X + 1;
+
+         if Point.X = Dims.X then
+            Point.Y := Point.Y + 1;
+            Point.X := 0;
+         end if;
+
+         if Point.Y >= Dims.Y then
+            Point.Y := 0;
+         end if;
+      end loop;
+
+      Notcurses.Context.Render (Context);
+      delay 1.0;
+      Notcurses.Plane.Erase (Plane);
+   end Test_Palette;
+
    procedure Test_Dimensions is
       use Notcurses;
       use Notcurses.Plane;
+      use Notcurses.Channel;
       Plane : constant Notcurses_Plane := Standard_Plane;
 
-      Red   : Unsigned_8 := 16#80#;
-      Green : Unsigned_8 := 16#80#;
-      Blue  : Unsigned_8 := 16#80#;
+      Red   : Color_Type := 16#80#;
+      Green : Color_Type := 16#80#;
+      Blue  : Color_Type := 16#80#;
 
       Dims  : constant Coordinate := Dimensions (Plane);
    begin
@@ -73,9 +115,9 @@ package body Tests is
             Set_Background_RGB (Plane, Blue, Red, Green);
             Put (Plane, "X", Y, X);
             Blue := Blue + 2;
-            if Blue = Unsigned_8'Last then
+            if Blue = Color_Type'Last then
                Green := Green + 2;
-               if Green = Unsigned_8'Last then
+               if Green = Color_Type'Last then
                   Red := (Red + 2);
                end if;
             end if;

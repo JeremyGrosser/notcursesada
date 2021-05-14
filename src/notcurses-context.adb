@@ -61,6 +61,14 @@ package body Notcurses.Context is
       return To_Ada (NI);
    end Get;
 
+   function Palette_Size
+      (Context : Notcurses_Context)
+      return Natural
+   is
+   begin
+      return Natural (Thin.notcurses_palette_size (Context)) - 1;
+   end Palette_Size;
+
    procedure Stop
       (Context : in out Notcurses_Context)
    is

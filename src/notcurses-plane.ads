@@ -3,6 +3,7 @@
 --
 --  SPDX-License-Identifier: Apache-2.0
 --
+with Notcurses.Channel; use Notcurses.Channel;
 with Interfaces; use Interfaces;
 
 package Notcurses.Plane is
@@ -40,12 +41,20 @@ package Notcurses.Plane is
        Str   : Wide_Wide_String;
        Y, X  : Integer := -1);
 
+   procedure Set_Background
+      (Plane   : Notcurses_Plane;
+       Channel : Notcurses_Channel);
+
+   procedure Set_Foreground
+      (Plane   : Notcurses_Plane;
+       Channel : Notcurses_Channel);
+
    procedure Set_Background_RGB
       (Plane   : Notcurses_Plane;
-       R, G, B : Unsigned_8);
+       R, G, B : Color_Type);
 
    procedure Set_Foreground_RGB
       (Plane   : Notcurses_Plane;
-       R, G, B : Unsigned_8);
+       R, G, B : Color_Type);
 
 end Notcurses.Plane;

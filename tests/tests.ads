@@ -7,6 +7,7 @@ package Tests is
    procedure Test_Version;
    procedure Test_Hello_World;
    procedure Test_Colors;
+   procedure Test_Palette;
    procedure Test_Dimensions;
    procedure Test_Input;
    procedure Test_Plane_Split;

@@ -17,6 +17,7 @@ begin
       Test_Version;
       Test_Hello_World;
       Test_Colors;
+      Test_Palette;
       Test_Dimensions;
       Test_Plane_Split;
       Test_Progress_Bar;
