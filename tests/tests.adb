@@ -239,17 +239,27 @@ package body Tests is
 
    procedure Test_Direct is
       use Notcurses.Direct;
-      use Ada.Characters.Wide_Wide_Latin_1;
-      New_Line : constant Wide_Wide_String (1 .. 1) := (1 => LF);
       Plane : Notcurses_Direct;
       Dims  : Notcurses.Coordinate;
    begin
       Initialize (Plane);
       Set_Cursor_Enabled (Plane, False);
       Dims := Dimensions (Plane);
-      Put (Plane, "X=" & Dims.X'Wide_Wide_Image);
-      Put (Plane, " Y=" & Dims.Y'Wide_Wide_Image);
-      Put (Plane, New_Line);
+
+      Put (Plane, "Terminal size: (" & Dims.X'Wide_Wide_Image & "," & Dims.Y'Wide_Wide_Image & ")");
+      New_Line (Plane);
+
+      Put (Plane, "Red",
+         Foreground => (R => 255, others => <>));
+      New_Line (Plane);
+
+      Put (Plane, "Green",
+         Foreground => (G => 255, others => <>));
+      New_Line (Plane);
+
+      Put (Plane, "Blue",
+         Foreground => (B => 255, others => <>));
+      New_Line (Plane);
       Stop (Plane);
    exception
       when E : others =>

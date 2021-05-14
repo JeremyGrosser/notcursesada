@@ -29,6 +29,9 @@ package Notcurses.Direct is
        Background : Notcurses_Channel :=
           (Not_Default => False, others => <>));
 
+   procedure New_Line
+      (This : Notcurses_Direct);
+
    procedure Set_Background_RGB
       (This    : Notcurses_Direct;
        R, G, B : Color_Type);

@@ -4,6 +4,7 @@
 --  SPDX-License-Identifier: Apache-2.0
 --
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
+with Ada.Characters.Wide_Wide_Latin_1;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
 with Interfaces.C; use Interfaces.C;
 with Interfaces; use Interfaces;
@@ -71,6 +72,14 @@ package body Notcurses.Direct is
          raise Notcurses_Error with "Failed to direct put string";
       end if;
    end Put;
+
+   procedure New_Line
+      (This : Notcurses_Direct)
+   is
+      LF : constant Wide_Wide_String (1 .. 1) := (1 => Ada.Characters.Wide_Wide_Latin_1.LF);
+   begin
+      Put (This, LF);
+   end New_Line;
 
    procedure Set_Background_RGB
       (This    : Notcurses_Direct;
