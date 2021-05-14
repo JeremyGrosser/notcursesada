@@ -3,7 +3,7 @@
 --
 --  SPDX-License-Identifier: Apache-2.0
 --
-with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Text_IO;
 with Ada.Characters.Wide_Wide_Latin_1;
 with Ada.Exceptions;
 with Notcurses.Context;
@@ -16,7 +16,7 @@ with Notcurses;
 package body Tests is
    procedure Test_Version is
    begin
-      Put_Line (Notcurses.Version);
+      Ada.Text_IO.Put_Line (Notcurses.Version);
    end Test_Version;
 
    procedure Test_Hello_World is
@@ -239,17 +239,21 @@ package body Tests is
 
    procedure Test_Direct is
       use Notcurses.Direct;
+      use Ada.Characters.Wide_Wide_Latin_1;
+      New_Line : constant Wide_Wide_String (1 .. 1) := (1 => LF);
       Plane : Notcurses_Direct;
       Dims  : Notcurses.Coordinate;
    begin
       Initialize (Plane);
       Set_Cursor_Enabled (Plane, False);
       Dims := Dimensions (Plane);
-      Put (Plane, "X=" & Dims.X'Image & ASCII.LF & "Y=" & Dims.Y'Image & ASCII.LF);
+      Put (Plane, "X=" & Dims.X'Wide_Wide_Image);
+      Put (Plane, " Y=" & Dims.Y'Wide_Wide_Image);
+      Put (Plane, New_Line);
       Stop (Plane);
    exception
       when E : others =>
          Stop (Plane);
-         Put_Line (Ada.Exceptions.Exception_Information (E));
+         Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
    end Test_Direct;
 end Tests;

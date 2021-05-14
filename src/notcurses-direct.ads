@@ -3,6 +3,7 @@
 --
 --  SPDX-License-Identifier: Apache-2.0
 --
+with Notcurses.Channel; use Notcurses.Channel;
 with Notcurses_Direct_Thin;
 
 package Notcurses.Direct is
@@ -21,8 +22,20 @@ package Notcurses.Direct is
       return Coordinate;
 
    procedure Put
-      (This : Notcurses_Direct;
-       Str  : String);
+      (This       : Notcurses_Direct;
+       Str        : Wide_Wide_String;
+       Foreground : Notcurses_Channel :=
+          (Not_Default => False, others => <>);
+       Background : Notcurses_Channel :=
+          (Not_Default => False, others => <>));
+
+   procedure Set_Background_RGB
+      (This    : Notcurses_Direct;
+       R, G, B : Color_Type);
+
+   procedure Set_Foreground_RGB
+      (This    : Notcurses_Direct;
+       R, G, B : Color_Type);
 
    procedure Stop
       (This : in out Notcurses_Direct);
