@@ -258,7 +258,8 @@ package body Tests is
       New_Line (Plane);
 
       Put (Plane, "Blue",
-         Foreground => (B => 255, others => <>));
+         Foreground => (B => 255, others => <>),
+         Background => (R => 255, G => 255, B => 255, others => <>));
       New_Line (Plane);
       Stop (Plane);
    exception
