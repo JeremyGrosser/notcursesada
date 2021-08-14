@@ -42,7 +42,7 @@ private
    Default_Options : aliased Thin.notcurses_options :=
       (termtype => Interfaces.C.Strings.Null_Ptr,
        renderfp => Thin.Null_File,
-       loglevel => Thin.NCLOGLEVEL_WARNING,
+       loglevel => Thin.NCLOGLEVEL_ERROR,
        flags    => 0,
        others   => 0);
 
