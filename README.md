@@ -5,7 +5,7 @@ This is an Ada binding for the notcurses library. [notcurses](https://notcurses.
 notcursesada is a work in progress and should not be used for production code. The API may change without notice. Many features of notcurses are not yet implemented.
 
 # Dependenices
-Tested with gnat-10 on Debian and notcurses 2.3.0. Other toolchain and library versions may work.
+Tested with gnat 10.2.1 on Debian 11 (bullseye) and notcurses 2.3.13. Other toolchain and library versions may work.
 
 # Usage
 Add notcursesada to your project with [Alire](https://alire.ada.dev/)
