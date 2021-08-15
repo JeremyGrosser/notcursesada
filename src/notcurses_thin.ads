@@ -16,7 +16,7 @@ with System;
 
 package Notcurses_Thin is
 
-   type Unsigned_Max is mod 2 ** Long_Long_Integer'Size;
+   type Unsigned_Max is mod System.Max_Binary_Modulus;
 
    --  unsupported macro: RESTRICT restrict
    --  unsupported macro: NCALIGN_TOP NCALIGN_LEFT
