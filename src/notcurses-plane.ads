@@ -8,6 +8,8 @@ with Interfaces; use Interfaces;
 
 package Notcurses.Plane is
 
+   type Alignment is (Unaligned, Left, Center, Right);
+
    function Standard_Plane
       return Notcurses_Plane;
 
@@ -40,6 +42,12 @@ package Notcurses.Plane is
       (Plane : Notcurses_Plane;
        Str   : Wide_Wide_String;
        Y, X  : Integer := -1);
+
+   procedure Put
+      (Plane : Notcurses_Plane;
+       Str   : Wide_Wide_String;
+       Y     : Integer := -1;
+       Align : Alignment := Unaligned);
 
    procedure Set_Background
       (Plane   : Notcurses_Plane;

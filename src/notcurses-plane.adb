@@ -111,6 +111,30 @@ package body Notcurses.Plane is
       end if;
    end Put;
 
+   procedure Put
+      (Plane : Notcurses_Plane;
+       Str   : Wide_Wide_String;
+       Y     : Integer := -1;
+       Align : Alignment := Unaligned)
+   is
+      use Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
+      Chars  : aliased chars_ptr := New_String (Encode (Str));
+      NCA    : Thin.ncalign_e;
+      Result : int;
+   begin
+      case Align is
+         when Unaligned => NCA := Thin.NCALIGN_UNALIGNED;
+         when Left      => NCA := Thin.NCALIGN_LEFT;
+         when Right     => NCA := Thin.NCALIGN_RIGHT;
+         when Center    => NCA := Thin.NCALIGN_CENTER;
+      end case;
+      Result := Thin.ncplane_putstr_aligned (Plane, int (Y), NCA, Chars);
+      Free (Chars);
+      if Result < 0 then
+         raise Notcurses_Error with "Failed to put Wide_Wide_String on plane";
+      end if;
+   end Put;
+
    procedure Set_Background
       (Plane   : Notcurses_Plane;
        Channel : Notcurses_Channel)
