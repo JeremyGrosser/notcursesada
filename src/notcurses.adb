@@ -12,15 +12,4 @@ package body Notcurses is
    begin
       return Interfaces.C.Strings.Value (Thin.notcurses_version);
    end Version;
-
-   function Width
-      (Str : Wide_Wide_String)
-      return Natural
-   is
-      use Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
-      use Interfaces.C.Strings;
-      Chars : constant chars_ptr := New_String (Encode (Str));
-   begin
-      return Natural (Notcurses_Thin.ncstrwidth (Chars));
-   end Width;
 end Notcurses;

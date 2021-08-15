@@ -33,10 +33,6 @@ package Notcurses is
    function Version
       return String;
 
-   function Width
-      (Str : Wide_Wide_String)
-      return Natural;
-
 private
 
    package Thin renames Notcurses_Thin;
