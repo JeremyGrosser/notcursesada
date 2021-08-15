@@ -7,111 +7,110 @@ pragma Ada_2012;
 pragma Style_Checks (Off);
 
 with Interfaces.C; use Interfaces.C;
-with Interfaces;   use Interfaces;
+with Interfaces; use Interfaces;
 with Interfaces.C.Strings;
 with Interfaces.C.Extensions;
-with System;
 with System.OS_Interface;
+with Interfaces.C_Streams;
+with System;
 
 package Notcurses_Thin is
 
-   type File_Pointer is new System.Address;
-   Null_File : constant File_Pointer := File_Pointer (System.Null_Address);
-
    type Unsigned_Max is mod 2 ** Long_Long_Integer'Size;
 
-   --  arg-macro: function htole (x)
-   --    return __bswap_32(htonl(x));
    --  unsupported macro: RESTRICT restrict
    --  unsupported macro: NCALIGN_TOP NCALIGN_LEFT
    --  unsupported macro: NCALIGN_BOTTOM NCALIGN_RIGHT
-   CELL_ALPHA_HIGHCONTRAST : constant := 16#30000000#;  --  /usr/local/include/notcurses/notcurses.h:114
-   CELL_ALPHA_TRANSPARENT : constant := 16#20000000#;  --  /usr/local/include/notcurses/notcurses.h:115
-   CELL_ALPHA_BLEND : constant := 16#10000000#;  --  /usr/local/include/notcurses/notcurses.h:116
-   CELL_ALPHA_OPAQUE : constant := 16#00000000#;  --  /usr/local/include/notcurses/notcurses.h:117
+   NCALPHA_HIGHCONTRAST : constant := 16#30000000#;  --  /usr/local/include/notcurses/notcurses.h:112
+   NCALPHA_TRANSPARENT : constant := 16#20000000#;  --  /usr/local/include/notcurses/notcurses.h:113
+   NCALPHA_BLEND : constant := 16#10000000#;  --  /usr/local/include/notcurses/notcurses.h:114
+   NCALPHA_OPAQUE : constant := 16#00000000#;  --  /usr/local/include/notcurses/notcurses.h:115
 
-   CELL_BGDEFAULT_MASK : constant := 16#0000000040000000#;  --  /usr/local/include/notcurses/notcurses.h:120
-   --  unsupported macro: CELL_FGDEFAULT_MASK (CELL_BGDEFAULT_MASK << 32u)
+   NCPALETTESIZE : constant := 256;  --  /usr/local/include/notcurses/notcurses.h:118
 
-   CELL_BG_RGB_MASK : constant := 16#0000000000ffffff#;  --  /usr/local/include/notcurses/notcurses.h:124
-   --  unsupported macro: CELL_FG_RGB_MASK (CELL_BG_RGB_MASK << 32u)
+   NC_NOBACKGROUND_MASK : constant := 16#8700000000000000#;  --  /usr/local/include/notcurses/notcurses.h:123
 
-   CELL_BG_PALETTE : constant := 16#0000000008000000#;  --  /usr/local/include/notcurses/notcurses.h:129
-   NCPALETTESIZE : constant := 256;  --  /usr/local/include/notcurses/notcurses.h:130
-   --  unsupported macro: CELL_FG_PALETTE (CELL_BG_PALETTE << 32u)
+   NC_BGDEFAULT_MASK : constant := 16#0000000040000000#;  --  /usr/local/include/notcurses/notcurses.h:125
+   --  unsupported macro: NC_FGDEFAULT_MASK (NC_BGDEFAULT_MASK << 32u)
 
-   CELL_BG_ALPHA_MASK : constant := 16#30000000#;  --  /usr/local/include/notcurses/notcurses.h:135
-   --  unsupported macro: CELL_FG_ALPHA_MASK (CELL_BG_ALPHA_MASK << 32u)
-   --  arg-macro: function CHANNELS_RGB_INITIALIZER (fr, fg, fb, br, bg, bb)
-   --    return ((((uint64_t)(fr) << 16) + ((uint64_t)(fg) << 8) + (uint64_t)(fb)) << 32) + (((br) << 16) + ((bg) << 8) + (bb)) + CELL_BGDEFAULT_MASK + CELL_FGDEFAULT_MASK;
-   --  arg-macro: function CHANNEL_RGB_INITIALIZER (r, g, b)
-   --    return ((uint32_t)r << 16) + ((uint32_t)g << 8) + (b) + CELL_BGDEFAULT_MASK;
-   --  unsupported macro: CELL_TRIVIAL_INITIALIZER { .gcluster = 0, .gcluster_backstop = 0, .width = 0, .stylemask = 0, .channels = 0, }
-   --  arg-macro: procedure CELL_CHAR_INITIALIZER (c)
-   --    { .gcluster := (htole(c)), .gcluster_backstop := 0, .width := (uint8_t)wcwidth(c), .stylemask := 0, .channels := 0, }
+   NC_BG_RGB_MASK : constant := 16#0000000000ffffff#;  --  /usr/local/include/notcurses/notcurses.h:129
+   --  unsupported macro: NC_FG_RGB_MASK (NC_BG_RGB_MASK << 32u)
+
+   NC_BG_PALETTE : constant := 16#0000000008000000#;  --  /usr/local/include/notcurses/notcurses.h:134
+   --  unsupported macro: NC_FG_PALETTE (NC_BG_PALETTE << 32u)
+
+   NC_BG_ALPHA_MASK : constant := 16#30000000#;  --  /usr/local/include/notcurses/notcurses.h:139
+   --  unsupported macro: NC_FG_ALPHA_MASK (NC_BG_ALPHA_MASK << 32u)
+   --  arg-macro: function NCCHANNEL_INITIALIZER (r, g, b)
+   --    return ((uint32_t)r << 16) + ((uint32_t)g << 8) + (b) + NC_BGDEFAULT_MASK;
+   --  arg-macro: function NCCHANNELS_INITIALIZER (fr, fg, fb, br, bg, bb)
+   --    return (NCCHANNEL_INITIALIZER(fr, fg, fb) << 32) + (NCCHANNEL_INITIALIZER(br, bg, bb));
    --  arg-macro: procedure CELL_INITIALIZER (c, s, chan)
-   --    { .gcluster := (htole(c)), .gcluster_backstop := 0, .width := (uint8_t)wcwidth(c), .stylemask := (s), .channels := (chan), }
+   --    { .gcluster := (htole(c)), .gcluster_backstop := 0, .width := (uint8_t)((wcwidth(c) < 0  or else  notc) ? 1 : wcwidth(c)), .stylemask := (s), .channels := (chan), }
+   --  arg-macro: procedure CELL_CHAR_INITIALIZER (c)
+   --    { .gcluster := (htole(c)), .gcluster_backstop := 0, .width := (uint8_t)((wcwidth(c) < 0  or else  notc) ? 1 : wcwidth(c)), .stylemask := 0, .channels := 0, }
+   --  unsupported macro: CELL_TRIVIAL_INITIALIZER { .gcluster = 0, .gcluster_backstop = 0, .width = 1, .stylemask = 0, .channels = 0, }
 
-   NCSTYLE_MASK : constant := 16#03ff#;  --  /usr/local/include/notcurses/notcurses.h:668
-   NCSTYLE_STANDOUT : constant := 16#0080#;  --  /usr/local/include/notcurses/notcurses.h:669
-   NCSTYLE_UNDERLINE : constant := 16#0040#;  --  /usr/local/include/notcurses/notcurses.h:670
-   NCSTYLE_REVERSE : constant := 16#0020#;  --  /usr/local/include/notcurses/notcurses.h:671
-   NCSTYLE_BLINK : constant := 16#0010#;  --  /usr/local/include/notcurses/notcurses.h:672
-   NCSTYLE_DIM : constant := 16#0008#;  --  /usr/local/include/notcurses/notcurses.h:673
-   NCSTYLE_BOLD : constant := 16#0004#;  --  /usr/local/include/notcurses/notcurses.h:674
-   NCSTYLE_INVIS : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:675
-   NCSTYLE_PROTECT : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:676
-   NCSTYLE_ITALIC : constant := 16#0100#;  --  /usr/local/include/notcurses/notcurses.h:677
-   NCSTYLE_STRUCK : constant := 16#0200#;  --  /usr/local/include/notcurses/notcurses.h:678
-   NCSTYLE_NONE : constant := 0;  --  /usr/local/include/notcurses/notcurses.h:679
+   NCSTYLE_MASK : constant := 16#ffff#;  --  /usr/local/include/notcurses/notcurses.h:687
+   NCSTYLE_ITALIC : constant := 16#0010#;  --  /usr/local/include/notcurses/notcurses.h:688
+   NCSTYLE_UNDERLINE : constant := 16#0008#;  --  /usr/local/include/notcurses/notcurses.h:689
+   NCSTYLE_UNDERCURL : constant := 16#0004#;  --  /usr/local/include/notcurses/notcurses.h:690
+   NCSTYLE_BOLD : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:691
+   NCSTYLE_STRUCK : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:692
+   NCSTYLE_NONE : constant := 0;  --  /usr/local/include/notcurses/notcurses.h:693
 
-   NCOPTION_INHIBIT_SETLOCALE : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:841
+   NCOPTION_INHIBIT_SETLOCALE : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:858
 
-   NCOPTION_NO_CLEAR_BITMAPS : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:847
+   NCOPTION_NO_CLEAR_BITMAPS : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:864
 
-   NCOPTION_NO_WINCH_SIGHANDLER : constant := 16#0004#;  --  /usr/local/include/notcurses/notcurses.h:851
+   NCOPTION_NO_WINCH_SIGHANDLER : constant := 16#0004#;  --  /usr/local/include/notcurses/notcurses.h:868
 
-   NCOPTION_NO_QUIT_SIGHANDLERS : constant := 16#0008#;  --  /usr/local/include/notcurses/notcurses.h:856
+   NCOPTION_NO_QUIT_SIGHANDLERS : constant := 16#0008#;  --  /usr/local/include/notcurses/notcurses.h:873
 
-   NCOPTION_SUPPRESS_BANNERS : constant := 16#0020#;  --  /usr/local/include/notcurses/notcurses.h:862
+   NCOPTION_PRESERVE_CURSOR : constant := 16#0010#;  --  /usr/local/include/notcurses/notcurses.h:879
 
-   NCOPTION_NO_ALTERNATE_SCREEN : constant := 16#0040#;  --  /usr/local/include/notcurses/notcurses.h:866
+   NCOPTION_SUPPRESS_BANNERS : constant := 16#0020#;  --  /usr/local/include/notcurses/notcurses.h:883
 
-   NCOPTION_NO_FONT_CHANGES : constant := 16#0080#;  --  /usr/local/include/notcurses/notcurses.h:872
+   NCOPTION_NO_ALTERNATE_SCREEN : constant := 16#0040#;  --  /usr/local/include/notcurses/notcurses.h:887
 
-   NCPLANE_OPTION_HORALIGNED : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:1144
+   NCOPTION_NO_FONT_CHANGES : constant := 16#0080#;  --  /usr/local/include/notcurses/notcurses.h:893
 
-   NCPLANE_OPTION_VERALIGNED : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:1146
+   NCPLANE_OPTION_HORALIGNED : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:1165
 
-   NCPLANE_OPTION_MARGINALIZED : constant := 16#0004#;  --  /usr/local/include/notcurses/notcurses.h:1153
+   NCPLANE_OPTION_VERALIGNED : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:1167
 
-   WCHAR_MAX_UTF8BYTES : constant := 6;  --  /usr/local/include/notcurses/notcurses.h:1593
+   NCPLANE_OPTION_MARGINALIZED : constant := 16#0004#;  --  /usr/local/include/notcurses/notcurses.h:1174
 
-   NCBOXMASK_TOP : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:1835
-   NCBOXMASK_RIGHT : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:1836
-   NCBOXMASK_BOTTOM : constant := 16#0004#;  --  /usr/local/include/notcurses/notcurses.h:1837
-   NCBOXMASK_LEFT : constant := 16#0008#;  --  /usr/local/include/notcurses/notcurses.h:1838
-   NCBOXGRAD_TOP : constant := 16#0010#;  --  /usr/local/include/notcurses/notcurses.h:1839
-   NCBOXGRAD_RIGHT : constant := 16#0020#;  --  /usr/local/include/notcurses/notcurses.h:1840
-   NCBOXGRAD_BOTTOM : constant := 16#0040#;  --  /usr/local/include/notcurses/notcurses.h:1841
-   NCBOXGRAD_LEFT : constant := 16#0080#;  --  /usr/local/include/notcurses/notcurses.h:1842
-   NCBOXCORNER_MASK : constant := 16#0300#;  --  /usr/local/include/notcurses/notcurses.h:1843
-   NCBOXCORNER_SHIFT : constant := 8;  --  /usr/local/include/notcurses/notcurses.h:1844
+   NCPLANE_OPTION_FIXED : constant := 16#0008#;  --  /usr/local/include/notcurses/notcurses.h:1178
 
-   NCVISUAL_OPTION_NODEGRADE : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:2432
-   NCVISUAL_OPTION_BLEND : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:2433
-   NCVISUAL_OPTION_HORALIGNED : constant := 16#0004#;  --  /usr/local/include/notcurses/notcurses.h:2434
-   NCVISUAL_OPTION_VERALIGNED : constant := 16#0008#;  --  /usr/local/include/notcurses/notcurses.h:2435
-   NCVISUAL_OPTION_ADDALPHA : constant := 16#0010#;  --  /usr/local/include/notcurses/notcurses.h:2436
-   NCVISUAL_OPTION_CHILDPLANE : constant := 16#0020#;  --  /usr/local/include/notcurses/notcurses.h:2437
+   WCHAR_MAX_UTF8BYTES : constant := 6;  --  /usr/local/include/notcurses/notcurses.h:1756
 
-   NCREEL_OPTION_INFINITESCROLL : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:2745
+   NCBOXMASK_TOP : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:1999
+   NCBOXMASK_RIGHT : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:2000
+   NCBOXMASK_BOTTOM : constant := 16#0004#;  --  /usr/local/include/notcurses/notcurses.h:2001
+   NCBOXMASK_LEFT : constant := 16#0008#;  --  /usr/local/include/notcurses/notcurses.h:2002
+   NCBOXGRAD_TOP : constant := 16#0010#;  --  /usr/local/include/notcurses/notcurses.h:2003
+   NCBOXGRAD_RIGHT : constant := 16#0020#;  --  /usr/local/include/notcurses/notcurses.h:2004
+   NCBOXGRAD_BOTTOM : constant := 16#0040#;  --  /usr/local/include/notcurses/notcurses.h:2005
+   NCBOXGRAD_LEFT : constant := 16#0080#;  --  /usr/local/include/notcurses/notcurses.h:2006
+   NCBOXCORNER_MASK : constant := 16#0300#;  --  /usr/local/include/notcurses/notcurses.h:2007
+   NCBOXCORNER_SHIFT : constant := 8;  --  /usr/local/include/notcurses/notcurses.h:2008
 
-   NCREEL_OPTION_CIRCULAR : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:2749
+   NCVISUAL_OPTION_NODEGRADE : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:2648
+   NCVISUAL_OPTION_BLEND : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:2649
+   NCVISUAL_OPTION_HORALIGNED : constant := 16#0004#;  --  /usr/local/include/notcurses/notcurses.h:2650
+   NCVISUAL_OPTION_VERALIGNED : constant := 16#0008#;  --  /usr/local/include/notcurses/notcurses.h:2651
+   NCVISUAL_OPTION_ADDALPHA : constant := 16#0010#;  --  /usr/local/include/notcurses/notcurses.h:2652
+   NCVISUAL_OPTION_CHILDPLANE : constant := 16#0020#;  --  /usr/local/include/notcurses/notcurses.h:2653
+   NCVISUAL_OPTION_NOINTERPOLATE : constant := 16#0040#;  --  /usr/local/include/notcurses/notcurses.h:2654
 
-   PREFIXCOLUMNS : constant := 7;  --  /usr/local/include/notcurses/notcurses.h:2872
-   IPREFIXCOLUMNS : constant := 8;  --  /usr/local/include/notcurses/notcurses.h:2873
-   BPREFIXCOLUMNS : constant := 9;  --  /usr/local/include/notcurses/notcurses.h:2874
+   NCREEL_OPTION_INFINITESCROLL : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:2964
+
+   NCREEL_OPTION_CIRCULAR : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:2968
+
+   PREFIXCOLUMNS : constant := 7;  --  /usr/local/include/notcurses/notcurses.h:3091
+   IPREFIXCOLUMNS : constant := 8;  --  /usr/local/include/notcurses/notcurses.h:3092
+   BPREFIXCOLUMNS : constant := 9;  --  /usr/local/include/notcurses/notcurses.h:3093
    --  unsupported macro: PREFIXSTRLEN (PREFIXCOLUMNS + 1)
    --  unsupported macro: IPREFIXSTRLEN (IPREFIXCOLUMNS + 1)
    --  unsupported macro: BPREFIXSTRLEN (BPREFIXCOLUMNS + 1)
@@ -124,29 +123,40 @@ package Notcurses_Thin is
    --  arg-macro: procedure BPREFIXFMT (x)
    --    NCMETRICFWIDTH((x), BPREFIXCOLUMNS), (x)
 
-   NCMENU_OPTION_BOTTOM : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:3183
-   NCMENU_OPTION_HIDING : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:3184
+   NCMENU_OPTION_BOTTOM : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:3363
+   NCMENU_OPTION_HIDING : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:3364
 
-   NCPROGBAR_OPTION_RETROGRADE : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:3261
+   NCPROGBAR_OPTION_RETROGRADE : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:3439
 
-   NCTABBED_OPTION_BOTTOM : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:3295
+   NCTABBED_OPTION_BOTTOM : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:3473
 
-   NCPLOT_OPTION_LABELTICKSD : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:3538
-   NCPLOT_OPTION_EXPONENTIALD : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:3539
-   NCPLOT_OPTION_VERTICALI : constant := 16#0004#;  --  /usr/local/include/notcurses/notcurses.h:3540
-   NCPLOT_OPTION_NODEGRADE : constant := 16#0008#;  --  /usr/local/include/notcurses/notcurses.h:3541
-   NCPLOT_OPTION_DETECTMAXONLY : constant := 16#0010#;  --  /usr/local/include/notcurses/notcurses.h:3542
-   NCPLOT_OPTION_PRINTSAMPLE : constant := 16#0020#;  --  /usr/local/include/notcurses/notcurses.h:3543
+   NCPLOT_OPTION_LABELTICKSD : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:3716
+   NCPLOT_OPTION_EXPONENTIALD : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:3717
+   NCPLOT_OPTION_VERTICALI : constant := 16#0004#;  --  /usr/local/include/notcurses/notcurses.h:3718
+   NCPLOT_OPTION_NODEGRADE : constant := 16#0008#;  --  /usr/local/include/notcurses/notcurses.h:3719
+   NCPLOT_OPTION_DETECTMAXONLY : constant := 16#0010#;  --  /usr/local/include/notcurses/notcurses.h:3720
+   NCPLOT_OPTION_PRINTSAMPLE : constant := 16#0020#;  --  /usr/local/include/notcurses/notcurses.h:3721
 
-   NCREADER_OPTION_HORSCROLL : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:3666
+   NCREADER_OPTION_HORSCROLL : constant := 16#0001#;  --  /usr/local/include/notcurses/notcurses.h:3844
 
-   NCREADER_OPTION_VERSCROLL : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:3668
+   NCREADER_OPTION_VERSCROLL : constant := 16#0002#;  --  /usr/local/include/notcurses/notcurses.h:3846
 
-   NCREADER_OPTION_NOCMDKEYS : constant := 16#0004#;  --  /usr/local/include/notcurses/notcurses.h:3670
+   NCREADER_OPTION_NOCMDKEYS : constant := 16#0004#;  --  /usr/local/include/notcurses/notcurses.h:3848
 
-   NCREADER_OPTION_CURSOR : constant := 16#0008#;  --  /usr/local/include/notcurses/notcurses.h:3673
+   NCREADER_OPTION_CURSOR : constant := 16#0008#;  --  /usr/local/include/notcurses/notcurses.h:3851
+   --  unsupported macro: CELL_ALPHA_HIGHCONTRAST NCALPHA_HIGHCONTRAST
+   --  unsupported macro: CELL_ALPHA_TRANSPARENT NCALPHA_TRANSPARENT
+   --  unsupported macro: CELL_ALPHA_BLEND NCALPHA_BLEND
+   --  unsupported macro: CELL_ALPHA_OPAQUE NCALPHA_OPAQUE
 
-   function notcurses_version return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:39
+   NCSTYLE_PROTECT : constant := 0;  --  /usr/local/include/notcurses/notcurses.h:4460
+   NCSTYLE_STANDOUT : constant := 0;  --  /usr/local/include/notcurses/notcurses.h:4461
+   NCSTYLE_REVERSE : constant := 0;  --  /usr/local/include/notcurses/notcurses.h:4462
+   NCSTYLE_INVIS : constant := 0;  --  /usr/local/include/notcurses/notcurses.h:4463
+   NCSTYLE_DIM : constant := 0;  --  /usr/local/include/notcurses/notcurses.h:4464
+   NCSTYLE_BLINK : constant := 0;  --  /usr/local/include/notcurses/notcurses.h:4465
+
+   function notcurses_version return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:30
    with Import => True,
         Convention => C,
         External_Name => "notcurses_version";
@@ -155,7 +165,7 @@ package Notcurses_Thin is
      (major : access int;
       minor : access int;
       patch : access int;
-      tweak : access int)  -- /usr/local/include/notcurses/notcurses.h:42
+      tweak : access int)  -- /usr/local/include/notcurses/notcurses.h:33
    with Import => True,
         Convention => C,
         External_Name => "notcurses_version_components";
@@ -202,14 +212,14 @@ package Notcurses_Thin is
       NCBLIT_PIXEL,
       NCBLIT_4x1,
       NCBLIT_8x1)
-   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:74
+   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:66
 
    type ncalign_e is
      (NCALIGN_UNALIGNED,
       NCALIGN_LEFT,
       NCALIGN_CENTER,
       NCALIGN_RIGHT)
-   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:82
+   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:74
 
    type ncscale_e is
      (NCSCALE_NONE,
@@ -217,38 +227,48 @@ package Notcurses_Thin is
       NCSCALE_STRETCH,
       NCSCALE_NONE_HIRES,
       NCSCALE_SCALE_HIRES)
-   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:99
+   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:91
 
-   function ncstrwidth (mbs : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:103
+   function ncstrwidth (mbs : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:95
    with Import => True,
         Convention => C,
         External_Name => "ncstrwidth";
 
+   function notcurses_accountname return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:98
+   with Import => True,
+        Convention => C,
+        External_Name => "notcurses_accountname";
+
+   function notcurses_hostname return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:101
+   with Import => True,
+        Convention => C,
+        External_Name => "notcurses_hostname";
+
    function notcurses_ucs32_to_utf8
-     (ucs32 : access Wide_Wide_Character;
+     (ucs32 : access Unsigned_32;
       ucs32count : unsigned;
       resultbuf : access unsigned_char;
-      buflen : Interfaces.C.size_t) return int  -- /usr/local/include/notcurses/notcurses.h:110
+      buflen : Interfaces.C.size_t) return int  -- /usr/local/include/notcurses/notcurses.h:108
    with Import => True,
         Convention => C,
         External_Name => "notcurses_ucs32_to_utf8";
 
-   function ncchannel_r (channel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:153
+   function ncchannel_r (channel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:158
    with Import => True,
         Convention => C,
         External_Name => "ncchannel_r";
 
-   function ncchannel_g (channel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:159
+   function ncchannel_g (channel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:164
    with Import => True,
         Convention => C,
         External_Name => "ncchannel_g";
 
-   function ncchannel_b (channel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:165
+   function ncchannel_b (channel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:170
    with Import => True,
         Convention => C,
         External_Name => "ncchannel_b";
 
-   function ncchannel_alpha (channel : unsigned) return unsigned  -- /usr/local/include/notcurses/notcurses.h:171
+   function ncchannel_alpha (channel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:176
    with Import => True,
         Convention => C,
         External_Name => "ncchannel_alpha";
@@ -257,115 +277,120 @@ package Notcurses_Thin is
      (channel : Unsigned_32;
       r : access unsigned;
       g : access unsigned;
-      b : access unsigned) return unsigned  -- /usr/local/include/notcurses/notcurses.h:177
+      b : access unsigned) return unsigned  -- /usr/local/include/notcurses/notcurses.h:182
    with Import => True,
         Convention => C,
         External_Name => "ncchannel_rgb8";
 
    function ncchannel_set_rgb8
      (channel : access Unsigned_32;
-      r : int;
-      g : int;
-      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:188
+      r : unsigned;
+      g : unsigned;
+      b : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:193
    with Import => True,
         Convention => C,
         External_Name => "ncchannel_set_rgb8";
 
    procedure ncchannel_set_rgb8_clipped
-     (channel : access unsigned;
+     (channel : access Unsigned_32;
       r : int;
       g : int;
-      b : int)  -- /usr/local/include/notcurses/notcurses.h:204
+      b : int)  -- /usr/local/include/notcurses/notcurses.h:206
    with Import => True,
         Convention => C,
         External_Name => "ncchannel_set_rgb8_clipped";
 
-   function ncchannel_set (channel : access unsigned; rgb : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:229
+   function ncchannel_set (channel : access Unsigned_32; rgb : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:231
    with Import => True,
         Convention => C,
         External_Name => "ncchannel_set";
 
-   function ncchannel_palindex (channel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:238
+   function ncchannel_palindex (channel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:240
    with Import => True,
         Convention => C,
         External_Name => "ncchannel_palindex";
 
-   function ncchannel_set_alpha (channel : access unsigned; alpha : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:244
+   function ncchannel_set_alpha (channel : access Unsigned_32; alpha : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:246
    with Import => True,
         Convention => C,
         External_Name => "ncchannel_set_alpha";
 
-   function ncchannel_set_palindex (channel : access Unsigned_32; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:256
+   function ncchannel_set_palindex (channel : access Unsigned_32; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:258
    with Import => True,
         Convention => C,
         External_Name => "ncchannel_set_palindex";
 
-   function ncchannel_default_p (channel : unsigned) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:270
+   function ncchannel_default_p (channel : Unsigned_32) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:272
    with Import => True,
         Convention => C,
         External_Name => "ncchannel_default_p";
 
-   function ncchannel_palindex_p (channel : unsigned) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:276
+   function ncchannel_palindex_p (channel : Unsigned_32) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:278
    with Import => True,
         Convention => C,
         External_Name => "ncchannel_palindex_p";
 
-   function ncchannel_set_default (channel : access unsigned) return unsigned  -- /usr/local/include/notcurses/notcurses.h:282
+   function ncchannel_set_default (channel : access Unsigned_32) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:284
    with Import => True,
         Convention => C,
         External_Name => "ncchannel_set_default";
 
-   function ncchannels_bchannel (channels : Unsigned_64) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:288
+   function ncchannels_bchannel (channels : Unsigned_64) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:290
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_bchannel";
 
-   function ncchannels_fchannel (channels : Unsigned_64) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:294
+   function ncchannels_fchannel (channels : Unsigned_64) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:296
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_fchannel";
 
-   function ncchannels_set_bchannel (channels : access Unsigned_64; channel : Unsigned_32) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:300
+   function ncchannels_reverse (channels : Unsigned_64) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:303
+   with Import => True,
+        Convention => C,
+        External_Name => "ncchannels_reverse";
+
+   function ncchannels_set_bchannel (channels : access Unsigned_64; channel : Unsigned_32) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:315
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_set_bchannel";
 
-   function ncchannels_set_fchannel (channels : access Unsigned_64; channel : Unsigned_32) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:306
+   function ncchannels_set_fchannel (channels : access Unsigned_64; channel : Unsigned_32) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:321
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_set_fchannel";
 
-   function ncchannels_combine (fchan : Unsigned_32; bchan : Unsigned_32) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:311
+   function ncchannels_combine (fchan : Unsigned_32; bchan : Unsigned_32) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:326
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_combine";
 
-   function ncchannels_fg_palindex (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:319
+   function ncchannels_fg_palindex (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:334
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_fg_palindex";
 
-   function ncchannels_bg_palindex (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:324
+   function ncchannels_bg_palindex (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:339
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_bg_palindex";
 
-   function ncchannels_fg_rgb (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:330
+   function ncchannels_fg_rgb (channels : Unsigned_64) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:345
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_fg_rgb";
 
-   function ncchannels_bg_rgb (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:336
+   function ncchannels_bg_rgb (channels : Unsigned_64) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:351
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_bg_rgb";
 
-   function ncchannels_fg_alpha (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:342
+   function ncchannels_fg_alpha (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:357
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_fg_alpha";
 
-   function ncchannels_bg_alpha (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:348
+   function ncchannels_bg_alpha (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:363
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_bg_alpha";
@@ -374,7 +399,7 @@ package Notcurses_Thin is
      (channels : Unsigned_64;
       r : access unsigned;
       g : access unsigned;
-      b : access unsigned) return unsigned  -- /usr/local/include/notcurses/notcurses.h:354
+      b : access unsigned) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:369
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_fg_rgb8";
@@ -383,16 +408,16 @@ package Notcurses_Thin is
      (channels : Unsigned_64;
       r : access unsigned;
       g : access unsigned;
-      b : access unsigned) return unsigned  -- /usr/local/include/notcurses/notcurses.h:360
+      b : access unsigned) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:375
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_bg_rgb8";
 
    function ncchannels_set_fg_rgb8
      (channels : access Unsigned_64;
-      r : int;
-      g : int;
-      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:367
+      r : unsigned;
+      g : unsigned;
+      b : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:382
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_set_fg_rgb8";
@@ -401,31 +426,31 @@ package Notcurses_Thin is
      (channels : access Unsigned_64;
       r : int;
       g : int;
-      b : int)  -- /usr/local/include/notcurses/notcurses.h:378
+      b : int)  -- /usr/local/include/notcurses/notcurses.h:393
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_set_fg_rgb8_clipped";
 
-   function ncchannels_set_fg_alpha (channels : access Unsigned_64; alpha : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:386
+   function ncchannels_set_fg_alpha (channels : access Unsigned_64; alpha : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:401
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_set_fg_alpha";
 
-   function ncchannels_set_fg_palindex (channels : access Unsigned_64; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:396
+   function ncchannels_set_fg_palindex (channels : access Unsigned_64; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:411
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_set_fg_palindex";
 
-   function ncchannels_set_fg_rgb (channels : access Unsigned_64; rgb : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:407
+   function ncchannels_set_fg_rgb (channels : access Unsigned_64; rgb : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:422
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_set_fg_rgb";
 
    function ncchannels_set_bg_rgb8
      (channels : access Unsigned_64;
-      r : int;
-      g : int;
-      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:419
+      r : unsigned;
+      g : unsigned;
+      b : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:434
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_set_bg_rgb8";
@@ -434,66 +459,66 @@ package Notcurses_Thin is
      (channels : access Unsigned_64;
       r : int;
       g : int;
-      b : int)  -- /usr/local/include/notcurses/notcurses.h:430
+      b : int)  -- /usr/local/include/notcurses/notcurses.h:445
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_set_bg_rgb8_clipped";
 
-   function ncchannels_set_bg_alpha (channels : access Unsigned_64; alpha : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:438
+   function ncchannels_set_bg_alpha (channels : access Unsigned_64; alpha : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:453
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_set_bg_alpha";
 
-   function ncchannels_set_bg_palindex (channels : access Unsigned_64; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:453
+   function ncchannels_set_bg_palindex (channels : access Unsigned_64; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:468
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_set_bg_palindex";
 
-   function ncchannels_set_bg_rgb (channels : access Unsigned_64; rgb : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:464
+   function ncchannels_set_bg_rgb (channels : access Unsigned_64; rgb : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:479
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_set_bg_rgb";
 
-   function ncchannels_fg_default_p (channels : Unsigned_64) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:475
+   function ncchannels_fg_default_p (channels : Unsigned_64) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:490
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_fg_default_p";
 
-   function ncchannels_fg_palindex_p (channels : Unsigned_64) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:481
+   function ncchannels_fg_palindex_p (channels : Unsigned_64) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:496
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_fg_palindex_p";
 
-   function ncchannels_bg_default_p (channels : Unsigned_64) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:489
+   function ncchannels_bg_default_p (channels : Unsigned_64) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:504
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_bg_default_p";
 
-   function ncchannels_bg_palindex_p (channels : Unsigned_64) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:495
+   function ncchannels_bg_palindex_p (channels : Unsigned_64) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:510
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_bg_palindex_p";
 
-   function ncchannels_set_fg_default (channels : access Unsigned_64) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:501
+   function ncchannels_set_fg_default (channels : access Unsigned_64) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:516
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_set_fg_default";
 
-   function ncchannels_set_bg_default (channels : access Unsigned_64) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:510
+   function ncchannels_set_bg_default (channels : access Unsigned_64) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:525
    with Import => True,
         Convention => C,
         External_Name => "ncchannels_set_bg_default";
 
    type nccell is record
-      gcluster : aliased Unsigned_32;  -- /usr/local/include/notcurses/notcurses.h:601
-      gcluster_backstop : aliased Unsigned_8;  -- /usr/local/include/notcurses/notcurses.h:602
-      width : aliased Unsigned_8;  -- /usr/local/include/notcurses/notcurses.h:610
-      stylemask : aliased Unsigned_16;  -- /usr/local/include/notcurses/notcurses.h:611
-      channels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:631
+      gcluster : aliased Unsigned_32;  -- /usr/local/include/notcurses/notcurses.h:612
+      gcluster_backstop : aliased Unsigned_8;  -- /usr/local/include/notcurses/notcurses.h:613
+      width : aliased Unsigned_8;  -- /usr/local/include/notcurses/notcurses.h:621
+      stylemask : aliased Unsigned_16;  -- /usr/local/include/notcurses/notcurses.h:622
+      channels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:642
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:567
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:582
 
-   procedure nccell_init (c : access nccell)  -- /usr/local/include/notcurses/notcurses.h:642
+   procedure nccell_init (c : access nccell)  -- /usr/local/include/notcurses/notcurses.h:659
    with Import => True,
         Convention => C,
         External_Name => "nccell_init";
@@ -501,7 +526,7 @@ package Notcurses_Thin is
    function nccell_load
      (n : access ncplane;
       c : access nccell;
-      gcluster : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:649
+      gcluster : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:666
    with Import => True,
         Convention => C,
         External_Name => "nccell_load";
@@ -511,7 +536,7 @@ package Notcurses_Thin is
       c : access nccell;
       gcluster : Interfaces.C.Strings.chars_ptr;
       stylemask : Unsigned_32;
-      channels : Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:653
+      channels : Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:670
    with Import => True,
         Convention => C,
         External_Name => "nccell_prime";
@@ -519,82 +544,82 @@ package Notcurses_Thin is
    function nccell_duplicate
      (n : access ncplane;
       targ : access nccell;
-      c : access constant nccell) return int  -- /usr/local/include/notcurses/notcurses.h:663
+      c : access constant nccell) return int  -- /usr/local/include/notcurses/notcurses.h:680
    with Import => True,
         Convention => C,
         External_Name => "nccell_duplicate";
 
-   procedure nccell_release (n : access ncplane; c : access nccell)  -- /usr/local/include/notcurses/notcurses.h:666
+   procedure nccell_release (n : access ncplane; c : access nccell)  -- /usr/local/include/notcurses/notcurses.h:683
    with Import => True,
         Convention => C,
         External_Name => "nccell_release";
 
-   procedure nccell_set_styles (c : access nccell; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:684
+   procedure nccell_set_styles (c : access nccell; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:698
    with Import => True,
         Convention => C,
         External_Name => "nccell_set_styles";
 
-   function nccell_styles (c : access constant nccell) return unsigned  -- /usr/local/include/notcurses/notcurses.h:690
+   function nccell_styles (c : access constant nccell) return unsigned  -- /usr/local/include/notcurses/notcurses.h:704
    with Import => True,
         Convention => C,
         External_Name => "nccell_styles";
 
-   procedure nccell_on_styles (c : access nccell; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:697
+   procedure nccell_on_styles (c : access nccell; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:711
    with Import => True,
         Convention => C,
         External_Name => "nccell_on_styles";
 
-   procedure nccell_off_styles (c : access nccell; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:703
+   procedure nccell_off_styles (c : access nccell; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:717
    with Import => True,
         Convention => C,
         External_Name => "nccell_off_styles";
 
-   procedure nccell_set_fg_default (c : access nccell)  -- /usr/local/include/notcurses/notcurses.h:709
+   procedure nccell_set_fg_default (c : access nccell)  -- /usr/local/include/notcurses/notcurses.h:723
    with Import => True,
         Convention => C,
         External_Name => "nccell_set_fg_default";
 
-   procedure nccell_set_bg_default (c : access nccell)  -- /usr/local/include/notcurses/notcurses.h:715
+   procedure nccell_set_bg_default (c : access nccell)  -- /usr/local/include/notcurses/notcurses.h:729
    with Import => True,
         Convention => C,
         External_Name => "nccell_set_bg_default";
 
-   function nccell_set_fg_alpha (c : access nccell; alpha : int) return int  -- /usr/local/include/notcurses/notcurses.h:720
+   function nccell_set_fg_alpha (c : access nccell; alpha : int) return int  -- /usr/local/include/notcurses/notcurses.h:734
    with Import => True,
         Convention => C,
         External_Name => "nccell_set_fg_alpha";
 
-   function nccell_set_bg_alpha (c : access nccell; alpha : int) return int  -- /usr/local/include/notcurses/notcurses.h:725
+   function nccell_set_bg_alpha (c : access nccell; alpha : int) return int  -- /usr/local/include/notcurses/notcurses.h:739
    with Import => True,
         Convention => C,
         External_Name => "nccell_set_bg_alpha";
 
-   function nccell_double_wide_p (c : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:731
+   function nccell_double_wide_p (c : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:745
    with Import => True,
         Convention => C,
         External_Name => "nccell_double_wide_p";
 
-   function nccell_wide_right_p (c : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:737
+   function nccell_wide_right_p (c : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:751
    with Import => True,
         Convention => C,
         External_Name => "nccell_wide_right_p";
 
-   function nccell_wide_left_p (c : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:743
+   function nccell_wide_left_p (c : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:757
    with Import => True,
         Convention => C,
         External_Name => "nccell_wide_left_p";
 
-   function nccell_extended_gcluster (n : access constant ncplane; c : access constant nccell) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:750
+   function nccell_extended_gcluster (n : access constant ncplane; c : access constant nccell) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:763
    with Import => True,
         Convention => C,
         External_Name => "nccell_extended_gcluster";
 
-   function nccell_width (n : access constant ncplane; c : access constant nccell) return int  -- /usr/local/include/notcurses/notcurses.h:754
+   function nccell_cols (c : access constant nccell) return int  -- /usr/local/include/notcurses/notcurses.h:768
    with Import => True,
         Convention => C,
-        External_Name => "nccell_width";
+        External_Name => "nccell_cols";
 
-   function nccell_strdup (n : access constant ncplane; c : access constant nccell) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:759
+   function nccell_strdup (n : access constant ncplane; c : access constant nccell) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:775
    with Import => True,
         Convention => C,
         External_Name => "nccell_strdup";
@@ -603,7 +628,7 @@ package Notcurses_Thin is
      (n : access constant ncplane;
       c : access constant nccell;
       stylemask : access Unsigned_16;
-      channels : access Unsigned_64) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:765
+      channels : access Unsigned_64) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:781
    with Import => True,
         Convention => C,
         External_Name => "nccell_extract";
@@ -612,7 +637,7 @@ package Notcurses_Thin is
      (n1 : access constant ncplane;
       c1 : access constant nccell;
       n2 : access constant ncplane;
-      c2 : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:782
+      c2 : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:798
    with Import => True,
         Convention => C,
         External_Name => "nccellcmp";
@@ -620,7 +645,7 @@ package Notcurses_Thin is
    function nccell_load_char
      (n : access ncplane;
       c : access nccell;
-      ch : char) return int  -- /usr/local/include/notcurses/notcurses.h:796
+      ch : char) return int  -- /usr/local/include/notcurses/notcurses.h:812
    with Import => True,
         Convention => C,
         External_Name => "nccell_load_char";
@@ -628,194 +653,197 @@ package Notcurses_Thin is
    function nccell_load_egc32
      (n : access ncplane;
       c : access nccell;
-      egc : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:806
+      egc : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:822
    with Import => True,
         Convention => C,
         External_Name => "nccell_load_egc32";
 
-   type ncloglevel_e is
-     (NCLOGLEVEL_SILENT,
-      NCLOGLEVEL_PANIC,
-      NCLOGLEVEL_FATAL,
-      NCLOGLEVEL_ERROR,
-      NCLOGLEVEL_WARNING,
-      NCLOGLEVEL_INFO,
-      NCLOGLEVEL_VERBOSE,
-      NCLOGLEVEL_DEBUG,
-      NCLOGLEVEL_TRACE)
-   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:829
+   subtype ncloglevel_e is int;
+   NCLOGLEVEL_SILENT : constant int := -1;
+   NCLOGLEVEL_PANIC : constant int := 0;
+   NCLOGLEVEL_FATAL : constant int := 1;
+   NCLOGLEVEL_ERROR : constant int := 2;
+   NCLOGLEVEL_WARNING : constant int := 3;
+   NCLOGLEVEL_INFO : constant int := 4;
+   NCLOGLEVEL_VERBOSE : constant int := 5;
+   NCLOGLEVEL_DEBUG : constant int := 6;
+   NCLOGLEVEL_TRACE : constant int := 7;  -- /usr/local/include/notcurses/notcurses.h:846
 
    type notcurses_options is record
-      termtype : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:879
-      renderfp : File_Pointer;  -- /usr/local/include/notcurses/notcurses.h:882
-      loglevel : aliased ncloglevel_e;  -- /usr/local/include/notcurses/notcurses.h:885
-      margin_t : aliased int;  -- /usr/local/include/notcurses/notcurses.h:890
-      margin_r : aliased int;  -- /usr/local/include/notcurses/notcurses.h:890
-      margin_b : aliased int;  -- /usr/local/include/notcurses/notcurses.h:890
-      margin_l : aliased int;  -- /usr/local/include/notcurses/notcurses.h:890
-      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:894
+      termtype : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:900
+      renderfp : Interfaces.C_Streams.FILEs;  -- /usr/local/include/notcurses/notcurses.h:903
+      loglevel : aliased ncloglevel_e;  -- /usr/local/include/notcurses/notcurses.h:906
+      margin_t : aliased int;  -- /usr/local/include/notcurses/notcurses.h:911
+      margin_r : aliased int;  -- /usr/local/include/notcurses/notcurses.h:911
+      margin_b : aliased int;  -- /usr/local/include/notcurses/notcurses.h:911
+      margin_l : aliased int;  -- /usr/local/include/notcurses/notcurses.h:911
+      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:915
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:875
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:896
 
-   function notcurses_lex_margins (op : Interfaces.C.Strings.chars_ptr; opts : access notcurses_options) return int  -- /usr/local/include/notcurses/notcurses.h:900
+   function notcurses_lex_margins (op : Interfaces.C.Strings.chars_ptr; opts : access notcurses_options) return int  -- /usr/local/include/notcurses/notcurses.h:921
    with Import => True,
         Convention => C,
         External_Name => "notcurses_lex_margins";
 
-   function notcurses_lex_blitter (op : Interfaces.C.Strings.chars_ptr; blitter : access ncblitter_e) return int  -- /usr/local/include/notcurses/notcurses.h:903
+   function notcurses_lex_blitter (op : Interfaces.C.Strings.chars_ptr; blitter : access ncblitter_e) return int  -- /usr/local/include/notcurses/notcurses.h:924
    with Import => True,
         Convention => C,
         External_Name => "notcurses_lex_blitter";
 
-   function notcurses_str_blitter (blitter : ncblitter_e) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:906
+   function notcurses_str_blitter (blitter : ncblitter_e) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:927
    with Import => True,
         Convention => C,
         External_Name => "notcurses_str_blitter";
 
-   function notcurses_lex_scalemode (op : Interfaces.C.Strings.chars_ptr; scalemode : access ncscale_e) return int  -- /usr/local/include/notcurses/notcurses.h:909
+   function notcurses_lex_scalemode (op : Interfaces.C.Strings.chars_ptr; scalemode : access ncscale_e) return int  -- /usr/local/include/notcurses/notcurses.h:931
    with Import => True,
         Convention => C,
         External_Name => "notcurses_lex_scalemode";
 
-   function notcurses_str_scalemode (scalemode : ncscale_e) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:912
+   function notcurses_str_scalemode (scalemode : ncscale_e) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:934
    with Import => True,
         Convention => C,
         External_Name => "notcurses_str_scalemode";
 
-   function notcurses_init (opts : access constant notcurses_options; fp : File_Pointer) return access notcurses  -- /usr/local/include/notcurses/notcurses.h:918
+   function notcurses_init (opts : access constant notcurses_options; fp : Interfaces.C_Streams.FILEs) return access notcurses  -- /usr/local/include/notcurses/notcurses.h:940
    with Import => True,
         Convention => C,
         External_Name => "notcurses_init";
 
-   function notcurses_core_init (opts : access constant notcurses_options; fp : File_Pointer) return access notcurses  -- /usr/local/include/notcurses/notcurses.h:922
+   function notcurses_core_init (opts : access constant notcurses_options; fp : Interfaces.C_Streams.FILEs) return access notcurses  -- /usr/local/include/notcurses/notcurses.h:944
    with Import => True,
         Convention => C,
         External_Name => "notcurses_core_init";
 
-   function notcurses_stop (nc : access notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:925
+   function notcurses_stop (nc : access notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:947
    with Import => True,
         Convention => C,
         External_Name => "notcurses_stop";
 
-   function ncpile_top (n : access ncplane) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:928
+   function ncpile_top (n : access ncplane) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:950
    with Import => True,
         Convention => C,
         External_Name => "ncpile_top";
 
-   function ncpile_bottom (n : access ncplane) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:931
+   function ncpile_bottom (n : access ncplane) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:953
    with Import => True,
         Convention => C,
         External_Name => "ncpile_bottom";
 
-   function ncpile_render (n : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:935
+   function ncpile_render (n : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:957
    with Import => True,
         Convention => C,
         External_Name => "ncpile_render";
 
-   function ncpile_rasterize (n : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:940
+   function ncpile_rasterize (n : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:962
    with Import => True,
         Convention => C,
         External_Name => "ncpile_rasterize";
 
-   function notcurses_render (nc : access notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:943
+   function notcurses_render (nc : access notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:965
    with Import => True,
         Convention => C,
         External_Name => "notcurses_render";
 
-   function notcurses_render_to_buffer
-     (nc : access notcurses;
+   function ncpile_render_to_buffer
+     (p : access ncplane;
       buf : System.Address;
-      buflen : access Interfaces.C.size_t) return int  -- /usr/local/include/notcurses/notcurses.h:949
+      buflen : access Interfaces.C.size_t) return int  -- /usr/local/include/notcurses/notcurses.h:971
    with Import => True,
         Convention => C,
-        External_Name => "notcurses_render_to_buffer";
+        External_Name => "ncpile_render_to_buffer";
 
-   function notcurses_render_to_file (nc : access notcurses; fp : File_Pointer) return int  -- /usr/local/include/notcurses/notcurses.h:953
+   function ncpile_render_to_file (p : access ncplane; fp : Interfaces.C_Streams.FILEs) return int  -- /usr/local/include/notcurses/notcurses.h:975
    with Import => True,
         Convention => C,
-        External_Name => "notcurses_render_to_file";
+        External_Name => "ncpile_render_to_file";
 
-   function notcurses_top (n : access notcurses) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:956
+   function notcurses_top (n : access notcurses) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:978
    with Import => True,
         Convention => C,
         External_Name => "notcurses_top";
 
-   function notcurses_bottom (n : access notcurses) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:959
+   function notcurses_bottom (n : access notcurses) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:981
    with Import => True,
         Convention => C,
         External_Name => "notcurses_bottom";
 
-   procedure notcurses_drop_planes (nc : access notcurses)  -- /usr/local/include/notcurses/notcurses.h:962
+   procedure notcurses_drop_planes (nc : access notcurses)  -- /usr/local/include/notcurses/notcurses.h:984
    with Import => True,
         Convention => C,
         External_Name => "notcurses_drop_planes";
 
-   function nckey_supppuab_p (w : Wide_Wide_Character) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:981
+   function nckey_supppuab_p (w : Unsigned_32) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1003
    with Import => True,
         Convention => C,
         External_Name => "nckey_supppuab_p";
 
-   function nckey_mouse_p (r : Wide_Wide_Character) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:987
+   function nckey_mouse_p (r : Unsigned_32) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1009
    with Import => True,
         Convention => C,
         External_Name => "nckey_mouse_p";
 
    type ncinput is record
-      id : aliased Wide_Wide_Character;  -- /usr/local/include/notcurses/notcurses.h:993
-      y : aliased int;  -- /usr/local/include/notcurses/notcurses.h:994
-      x : aliased int;  -- /usr/local/include/notcurses/notcurses.h:995
-      alt : aliased Extensions.bool;  -- /usr/local/include/notcurses/notcurses.h:996
-      shift : aliased Extensions.bool;  -- /usr/local/include/notcurses/notcurses.h:997
-      ctrl : aliased Extensions.bool;  -- /usr/local/include/notcurses/notcurses.h:998
-      seqnum : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:999
+      id : aliased Wide_Wide_Character;  -- /usr/local/include/notcurses/notcurses.h:1015
+      y : aliased int;  -- /usr/local/include/notcurses/notcurses.h:1016
+      x : aliased int;  -- /usr/local/include/notcurses/notcurses.h:1017
+      alt : aliased Extensions.bool;  -- /usr/local/include/notcurses/notcurses.h:1018
+      shift : aliased Extensions.bool;  -- /usr/local/include/notcurses/notcurses.h:1019
+      ctrl : aliased Extensions.bool;  -- /usr/local/include/notcurses/notcurses.h:1020
+      seqnum : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1021
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:992
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:1014
 
-   function ncinput_equal_p (n1 : access constant ncinput; n2 : access constant ncinput) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1005
+   function ncinput_equal_p (n1 : access constant ncinput; n2 : access constant ncinput) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1027
    with Import => True,
         Convention => C,
         External_Name => "ncinput_equal_p";
 
-   function notcurses_getc
+   function notcurses_get
      (n : access notcurses;
       ts : access constant System.OS_Interface.timespec;
-      sigmask : access constant System.OS_Interface.sigset_t;
-      ni : access ncinput) return Wide_Wide_Character  -- /usr/local/include/notcurses/notcurses.h:1026
+      ni : access ncinput) return Wide_Wide_Character  -- /usr/local/include/notcurses/notcurses.h:1047
    with Import => True,
         Convention => C,
-        External_Name => "notcurses_getc";
+        External_Name => "notcurses_get";
 
-   function notcurses_inputready_fd (n : access notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:1034
+   function notcurses_inputready_fd (n : access notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:1055
    with Import => True,
         Convention => C,
         External_Name => "notcurses_inputready_fd";
 
-   function notcurses_getc_nblock (n : access notcurses; ni : access ncinput) return Wide_Wide_Character  -- /usr/local/include/notcurses/notcurses.h:1040
+   function notcurses_getc_nblock (n : access notcurses; ni : access ncinput) return Wide_Wide_Character  -- /usr/local/include/notcurses/notcurses.h:1061
    with Import => True,
         Convention => C,
         External_Name => "notcurses_getc_nblock";
 
-   function notcurses_getc_blocking (n : access notcurses; ni : access ncinput) return Wide_Wide_Character  -- /usr/local/include/notcurses/notcurses.h:1050
+   function notcurses_getc_blocking (n : access notcurses; ni : access ncinput) return Wide_Wide_Character  -- /usr/local/include/notcurses/notcurses.h:1069
    with Import => True,
         Convention => C,
         External_Name => "notcurses_getc_blocking";
 
-   function notcurses_mouse_enable (n : access notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:1059
+   function ncinput_nomod_p (ni : access constant ncinput) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1074
+   with Import => True,
+        Convention => C,
+        External_Name => "ncinput_nomod_p";
+
+   function notcurses_mouse_enable (n : access notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:1081
    with Import => True,
         Convention => C,
         External_Name => "notcurses_mouse_enable";
 
-   function notcurses_mouse_disable (n : access notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:1062
+   function notcurses_mouse_disable (n : access notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:1084
    with Import => True,
         Convention => C,
         External_Name => "notcurses_mouse_disable";
 
-   function notcurses_linesigs_disable (n : access notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:1066
+   function notcurses_linesigs_disable (n : access notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:1088
    with Import => True,
         Convention => C,
         External_Name => "notcurses_linesigs_disable";
 
-   function notcurses_linesigs_enable (n : access notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:1070
+   function notcurses_linesigs_enable (n : access notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:1092
    with Import => True,
         Convention => C,
         External_Name => "notcurses_linesigs_enable";
@@ -823,17 +851,17 @@ package Notcurses_Thin is
    function notcurses_refresh
      (n : access notcurses;
       y : access int;
-      x : access int) return int  -- /usr/local/include/notcurses/notcurses.h:1076
+      x : access int) return int  -- /usr/local/include/notcurses/notcurses.h:1099
    with Import => True,
         Convention => C,
         External_Name => "notcurses_refresh";
 
-   function ncplane_notcurses (n : access ncplane) return access notcurses  -- /usr/local/include/notcurses/notcurses.h:1079
+   function ncplane_notcurses (n : access constant ncplane) return access notcurses  -- /usr/local/include/notcurses/notcurses.h:1102
    with Import => True,
         Convention => C,
         External_Name => "ncplane_notcurses";
 
-   function ncplane_notcurses_const (n : access constant ncplane) return access constant notcurses  -- /usr/local/include/notcurses/notcurses.h:1080
+   function ncplane_notcurses_const (n : access constant ncplane) return access constant notcurses  -- /usr/local/include/notcurses/notcurses.h:1103
    with Import => True,
         Convention => C,
         External_Name => "ncplane_notcurses_const";
@@ -841,17 +869,17 @@ package Notcurses_Thin is
    procedure ncplane_dim_yx
      (n : access constant ncplane;
       y : access int;
-      x : access int)  -- /usr/local/include/notcurses/notcurses.h:1083
+      x : access int)  -- /usr/local/include/notcurses/notcurses.h:1106
    with Import => True,
         Convention => C,
         External_Name => "ncplane_dim_yx";
 
-   function notcurses_stdplane (nc : access notcurses) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1088
+   function notcurses_stdplane (nc : access notcurses) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1111
    with Import => True,
         Convention => C,
         External_Name => "notcurses_stdplane";
 
-   function notcurses_stdplane_const (nc : access constant notcurses) return access constant ncplane  -- /usr/local/include/notcurses/notcurses.h:1089
+   function notcurses_stdplane_const (nc : access constant notcurses) return access constant ncplane  -- /usr/local/include/notcurses/notcurses.h:1112
    with Import => True,
         Convention => C,
         External_Name => "notcurses_stdplane_const";
@@ -859,7 +887,7 @@ package Notcurses_Thin is
    function notcurses_stddim_yx
      (nc : access notcurses;
       y : access int;
-      x : access int) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1093
+      x : access int) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1116
    with Import => True,
         Convention => C,
         External_Name => "notcurses_stddim_yx";
@@ -867,29 +895,29 @@ package Notcurses_Thin is
    function notcurses_stddim_yx_const
      (nc : access constant notcurses;
       y : access int;
-      x : access int) return access constant ncplane  -- /usr/local/include/notcurses/notcurses.h:1100
+      x : access int) return access constant ncplane  -- /usr/local/include/notcurses/notcurses.h:1123
    with Import => True,
         Convention => C,
         External_Name => "notcurses_stddim_yx_const";
 
-   function ncplane_dim_y (n : access constant ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1107
+   function ncplane_dim_y (n : access constant ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1130
    with Import => True,
         Convention => C,
         External_Name => "ncplane_dim_y";
 
-   function ncplane_dim_x (n : access constant ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1114
+   function ncplane_dim_x (n : access constant ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1137
    with Import => True,
         Convention => C,
         External_Name => "ncplane_dim_x";
 
    procedure ncplane_pixelgeom
-     (n : access ncplane;
+     (n : access constant ncplane;
       pxy : access int;
       pxx : access int;
       celldimy : access int;
       celldimx : access int;
       maxbmapy : access int;
-      maxbmapx : access int)  -- /usr/local/include/notcurses/notcurses.h:1126
+      maxbmapx : access int)  -- /usr/local/include/notcurses/notcurses.h:1147
    with Import => True,
         Convention => C,
         External_Name => "ncplane_pixelgeom";
@@ -897,7 +925,7 @@ package Notcurses_Thin is
    procedure notcurses_term_dim_yx
      (n : access constant notcurses;
       rows : access int;
-      cols : access int)  -- /usr/local/include/notcurses/notcurses.h:1133
+      cols : access int)  -- /usr/local/include/notcurses/notcurses.h:1154
    with Import => True,
         Convention => C,
         External_Name => "notcurses_term_dim_yx";
@@ -907,71 +935,71 @@ package Notcurses_Thin is
       yoff : int;
       xoff : int;
       stylemask : access Unsigned_16;
-      channels : access Unsigned_64) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:1140
+      channels : access Unsigned_64) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:1161
    with Import => True,
         Convention => C,
         External_Name => "notcurses_at_yx";
 
    type ncplane_options is record
-      y : aliased int;  -- /usr/local/include/notcurses/notcurses.h:1156
-      x : aliased int;  -- /usr/local/include/notcurses/notcurses.h:1157
-      rows : aliased int;  -- /usr/local/include/notcurses/notcurses.h:1158
-      cols : aliased int;  -- /usr/local/include/notcurses/notcurses.h:1159
-      userptr : System.Address;  -- /usr/local/include/notcurses/notcurses.h:1160
-      name : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:1161
-      resizecb : access function (arg1 : access ncplane) return int;  -- /usr/local/include/notcurses/notcurses.h:1162
-      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1163
-      margin_b : aliased int;  -- /usr/local/include/notcurses/notcurses.h:1164
-      margin_r : aliased int;  -- /usr/local/include/notcurses/notcurses.h:1164
+      y : aliased int;  -- /usr/local/include/notcurses/notcurses.h:1181
+      x : aliased int;  -- /usr/local/include/notcurses/notcurses.h:1182
+      rows : aliased int;  -- /usr/local/include/notcurses/notcurses.h:1183
+      cols : aliased int;  -- /usr/local/include/notcurses/notcurses.h:1184
+      userptr : System.Address;  -- /usr/local/include/notcurses/notcurses.h:1185
+      name : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:1186
+      resizecb : access function (arg1 : access ncplane) return int;  -- /usr/local/include/notcurses/notcurses.h:1187
+      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1188
+      margin_b : aliased int;  -- /usr/local/include/notcurses/notcurses.h:1189
+      margin_r : aliased int;  -- /usr/local/include/notcurses/notcurses.h:1189
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:1155
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:1180
 
-   function ncplane_create (n : access ncplane; nopts : access constant ncplane_options) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1172
+   function ncplane_create (n : access ncplane; nopts : access constant ncplane_options) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1197
    with Import => True,
         Convention => C,
         External_Name => "ncplane_create";
 
-   function ncpile_create (nc : access notcurses; nopts : access constant ncplane_options) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1176
+   function ncpile_create (nc : access notcurses; nopts : access constant ncplane_options) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1201
    with Import => True,
         Convention => C,
         External_Name => "ncpile_create";
 
-   function ncplane_resize_maximize (n : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1180
+   function ncplane_resize_maximize (n : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1205
    with Import => True,
         Convention => C,
         External_Name => "ncplane_resize_maximize";
 
-   function ncplane_resize_marginalized (n : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1185
+   function ncplane_resize_marginalized (n : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1210
    with Import => True,
         Convention => C,
         External_Name => "ncplane_resize_marginalized";
 
-   function ncplane_resize_realign (n : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1189
+   function ncplane_resize_realign (n : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1214
    with Import => True,
         Convention => C,
         External_Name => "ncplane_resize_realign";
 
-   procedure ncplane_set_resizecb (n : access ncplane; resizecb : access function (arg1 : access ncplane) return int)  -- /usr/local/include/notcurses/notcurses.h:1193
+   procedure ncplane_set_resizecb (n : access ncplane; resizecb : access function (arg1 : access ncplane) return int)  -- /usr/local/include/notcurses/notcurses.h:1218
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_resizecb";
 
-   function ncplane_resizecb (n : access constant ncplane) return access function (arg1 : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1196
+   function ncplane_resizecb (n : access constant ncplane) return access function (arg1 : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1221
    with Import => True,
         Convention => C,
         External_Name => "ncplane_resizecb";
 
-   function ncplane_reparent (n : access ncplane; newparent : access ncplane) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1204
+   function ncplane_reparent (n : access ncplane; newparent : access ncplane) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1229
    with Import => True,
         Convention => C,
         External_Name => "ncplane_reparent";
 
-   function ncplane_reparent_family (n : access ncplane; newparent : access ncplane) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1210
+   function ncplane_reparent_family (n : access ncplane; newparent : access ncplane) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1235
    with Import => True,
         Convention => C,
         External_Name => "ncplane_reparent_family";
 
-   function ncplane_dup (n : access constant ncplane; opaque : System.Address) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1217
+   function ncplane_dup (n : access constant ncplane; opaque : System.Address) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1243
    with Import => True,
         Convention => C,
         External_Name => "ncplane_dup";
@@ -980,7 +1008,7 @@ package Notcurses_Thin is
      (src : access constant ncplane;
       dst : access constant ncplane;
       y : access int;
-      x : access int)  -- /usr/local/include/notcurses/notcurses.h:1222
+      x : access int)  -- /usr/local/include/notcurses/notcurses.h:1249
    with Import => True,
         Convention => C,
         External_Name => "ncplane_translate";
@@ -988,125 +1016,204 @@ package Notcurses_Thin is
    function ncplane_translate_abs
      (n : access constant ncplane;
       y : access int;
-      x : access int) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1229
+      x : access int) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1256
    with Import => True,
         Convention => C,
         External_Name => "ncplane_translate_abs";
 
-   function ncplane_set_scrolling (n : access ncplane; scrollp : Extensions.bool) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1234
+   function ncplane_set_scrolling (n : access ncplane; scrollp : Extensions.bool) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1262
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_scrolling";
 
-   function notcurses_supported_styles (nc : access constant notcurses) return unsigned  -- /usr/local/include/notcurses/notcurses.h:1242
+   function ncplane_scrolling_p (n : access constant ncplane) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1265
+   with Import => True,
+        Convention => C,
+        External_Name => "ncplane_scrolling_p";
+
+   type anon2243_array2245 is array (0 .. 255) of aliased Unsigned_32;
+   type ncpalette is record
+      chans : aliased anon2243_array2245;  -- /usr/local/include/notcurses/notcurses.h:1274
+   end record
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:1273
+
+   function ncpalette_new (nc : access notcurses) return access ncpalette  -- /usr/local/include/notcurses/notcurses.h:1280
+   with Import => True,
+        Convention => C,
+        External_Name => "ncpalette_new";
+
+   function ncpalette_use (nc : access notcurses; p : access constant ncpalette) return int  -- /usr/local/include/notcurses/notcurses.h:1284
+   with Import => True,
+        Convention => C,
+        External_Name => "ncpalette_use";
+
+   function ncpalette_set_rgb8
+     (p : access ncpalette;
+      idx : int;
+      r : unsigned;
+      g : unsigned;
+      b : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:1288
+   with Import => True,
+        Convention => C,
+        External_Name => "ncpalette_set_rgb8";
+
+   function ncpalette_set
+     (p : access ncpalette;
+      idx : int;
+      rgb : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:1296
+   with Import => True,
+        Convention => C,
+        External_Name => "ncpalette_set";
+
+   function ncpalette_get_rgb8
+     (p : access constant ncpalette;
+      idx : int;
+      r : access unsigned;
+      g : access unsigned;
+      b : access unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:1304
+   with Import => True,
+        Convention => C,
+        External_Name => "ncpalette_get_rgb8";
+
+   procedure ncpalette_free (p : access ncpalette)  -- /usr/local/include/notcurses/notcurses.h:1312
+   with Import => True,
+        Convention => C,
+        External_Name => "ncpalette_free";
+
+   type nccapabilities is record
+      colors : aliased unsigned;  -- /usr/local/include/notcurses/notcurses.h:1316
+      utf8 : aliased Extensions.bool;  -- /usr/local/include/notcurses/notcurses.h:1317
+      rgb : aliased Extensions.bool;  -- /usr/local/include/notcurses/notcurses.h:1318
+      can_change_colors : aliased Extensions.bool;  -- /usr/local/include/notcurses/notcurses.h:1319
+      quadrants : aliased Extensions.bool;  -- /usr/local/include/notcurses/notcurses.h:1321
+      sextants : aliased Extensions.bool;  -- /usr/local/include/notcurses/notcurses.h:1322
+      braille : aliased Extensions.bool;  -- /usr/local/include/notcurses/notcurses.h:1323
+   end record
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:1315
+
+   function notcurses_supported_styles (nc : access constant notcurses) return unsigned  -- /usr/local/include/notcurses/notcurses.h:1330
    with Import => True,
         Convention => C,
         External_Name => "notcurses_supported_styles";
 
-   function notcurses_palette_size (nc : access constant notcurses) return unsigned  -- /usr/local/include/notcurses/notcurses.h:1247
+   function notcurses_palette_size (nc : access constant notcurses) return unsigned  -- /usr/local/include/notcurses/notcurses.h:1336
    with Import => True,
         Convention => C,
         External_Name => "notcurses_palette_size";
 
-   function notcurses_cantruecolor (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1250
+   function notcurses_detected_terminal (nc : access constant notcurses) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:1341
+   with Import => True,
+        Convention => C,
+        External_Name => "notcurses_detected_terminal";
+
+   function notcurses_cantruecolor (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1345
    with Import => True,
         Convention => C,
         External_Name => "notcurses_cantruecolor";
 
-   function notcurses_canfade (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1253
+   function notcurses_canfade (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1349
    with Import => True,
         Convention => C,
         External_Name => "notcurses_canfade";
 
-   function notcurses_canchangecolor (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1256
+   function nccapability_canchangecolor (caps : access constant nccapabilities) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1356
+   with Import => True,
+        Convention => C,
+        External_Name => "nccapability_canchangecolor";
+
+   function notcurses_canchangecolor (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1367
    with Import => True,
         Convention => C,
         External_Name => "notcurses_canchangecolor";
 
-   function notcurses_canopen_images (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1259
+   function notcurses_canopen_images (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1371
    with Import => True,
         Convention => C,
         External_Name => "notcurses_canopen_images";
 
-   function notcurses_canopen_videos (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1262
+   function notcurses_canopen_videos (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1375
    with Import => True,
         Convention => C,
         External_Name => "notcurses_canopen_videos";
 
-   function notcurses_canutf8 (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1265
+   function notcurses_canutf8 (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1379
    with Import => True,
         Convention => C,
         External_Name => "notcurses_canutf8";
 
-   function notcurses_canhalfblock (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1268
+   function notcurses_canhalfblock (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1383
    with Import => True,
         Convention => C,
         External_Name => "notcurses_canhalfblock";
 
-   function notcurses_canquadrant (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1271
+   function notcurses_canquadrant (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1387
    with Import => True,
         Convention => C,
         External_Name => "notcurses_canquadrant";
 
-   function notcurses_cansextant (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1274
+   function notcurses_cansextant (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1391
    with Import => True,
         Convention => C,
         External_Name => "notcurses_cansextant";
 
-   function notcurses_canbraille (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1277
+   function notcurses_canbraille (nc : access constant notcurses) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:1395
    with Import => True,
         Convention => C,
         External_Name => "notcurses_canbraille";
 
-   function notcurses_check_pixel_support (nc : access notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:1282
+   function notcurses_check_pixel_support (nc : access constant notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:1399
    with Import => True,
         Convention => C,
         External_Name => "notcurses_check_pixel_support";
 
    type ncstats is record
-      renders : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1288
-      writeouts : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1289
-      failed_renders : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1290
-      failed_writeouts : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1291
-      render_bytes : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1293
-      render_max_bytes : aliased Integer_64;  -- /usr/local/include/notcurses/notcurses.h:1294
-      render_min_bytes : aliased Integer_64;  -- /usr/local/include/notcurses/notcurses.h:1295
-      render_ns : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1296
-      render_max_ns : aliased Integer_64;  -- /usr/local/include/notcurses/notcurses.h:1297
-      render_min_ns : aliased Integer_64;  -- /usr/local/include/notcurses/notcurses.h:1298
-      writeout_ns : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1299
-      writeout_max_ns : aliased Integer_64;  -- /usr/local/include/notcurses/notcurses.h:1300
-      writeout_min_ns : aliased Integer_64;  -- /usr/local/include/notcurses/notcurses.h:1301
-      cellelisions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1302
-      cellemissions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1303
-      fgelisions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1304
-      fgemissions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1305
-      bgelisions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1306
-      bgemissions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1307
-      defaultelisions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1308
-      defaultemissions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1309
-      refreshes : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1310
-      fbbytes : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1313
-      planes : aliased unsigned;  -- /usr/local/include/notcurses/notcurses.h:1314
-      raster_ns : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1317
-      raster_max_ns : aliased Integer_64;  -- /usr/local/include/notcurses/notcurses.h:1318
-      raster_min_ns : aliased Integer_64;  -- /usr/local/include/notcurses/notcurses.h:1319
-      sprixelemissions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1320
-      sprixelelisions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1321
+      renders : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1406
+      writeouts : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1407
+      failed_renders : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1408
+      failed_writeouts : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1409
+      render_bytes : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1411
+      render_max_bytes : aliased Integer_64;  -- /usr/local/include/notcurses/notcurses.h:1412
+      render_min_bytes : aliased Integer_64;  -- /usr/local/include/notcurses/notcurses.h:1413
+      render_ns : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1414
+      render_max_ns : aliased Integer_64;  -- /usr/local/include/notcurses/notcurses.h:1415
+      render_min_ns : aliased Integer_64;  -- /usr/local/include/notcurses/notcurses.h:1416
+      writeout_ns : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1417
+      writeout_max_ns : aliased Integer_64;  -- /usr/local/include/notcurses/notcurses.h:1418
+      writeout_min_ns : aliased Integer_64;  -- /usr/local/include/notcurses/notcurses.h:1419
+      cellelisions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1420
+      cellemissions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1421
+      fgelisions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1422
+      fgemissions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1423
+      bgelisions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1424
+      bgemissions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1425
+      defaultelisions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1426
+      defaultemissions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1427
+      refreshes : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1428
+      appsync_updates : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1429
+      fbbytes : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1432
+      planes : aliased unsigned;  -- /usr/local/include/notcurses/notcurses.h:1433
+      raster_ns : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1436
+      raster_max_ns : aliased Integer_64;  -- /usr/local/include/notcurses/notcurses.h:1437
+      raster_min_ns : aliased Integer_64;  -- /usr/local/include/notcurses/notcurses.h:1438
+      sprixelemissions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1439
+      sprixelelisions : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1440
+      sprixelbytes : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1441
+      input_errors : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1442
+      input_events : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:1443
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:1286
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:1404
 
-   function notcurses_stats_alloc (nc : access constant notcurses) return access ncstats  -- /usr/local/include/notcurses/notcurses.h:1326
+   function notcurses_stats_alloc (nc : access constant notcurses) return access ncstats  -- /usr/local/include/notcurses/notcurses.h:1448
    with Import => True,
         Convention => C,
         External_Name => "notcurses_stats_alloc";
 
-   procedure notcurses_stats (nc : access notcurses; stats : access ncstats)  -- /usr/local/include/notcurses/notcurses.h:1331
+   procedure notcurses_stats (nc : access notcurses; stats : access ncstats)  -- /usr/local/include/notcurses/notcurses.h:1453
    with Import => True,
         Convention => C,
         External_Name => "notcurses_stats";
 
-   procedure notcurses_stats_reset (nc : access notcurses; stats : access ncstats)  -- /usr/local/include/notcurses/notcurses.h:1336
+   procedure notcurses_stats_reset (nc : access notcurses; stats : access ncstats)  -- /usr/local/include/notcurses/notcurses.h:1458
    with Import => True,
         Convention => C,
         External_Name => "notcurses_stats_reset";
@@ -1120,7 +1227,7 @@ package Notcurses_Thin is
       yoff : int;
       xoff : int;
       ylen : int;
-      xlen : int) return int  -- /usr/local/include/notcurses/notcurses.h:1353
+      xlen : int) return int  -- /usr/local/include/notcurses/notcurses.h:1475
    with Import => True,
         Convention => C,
         External_Name => "ncplane_resize";
@@ -1128,17 +1235,17 @@ package Notcurses_Thin is
    function ncplane_resize_simple
      (n : access ncplane;
       ylen : int;
-      xlen : int) return int  -- /usr/local/include/notcurses/notcurses.h:1359
+      xlen : int) return int  -- /usr/local/include/notcurses/notcurses.h:1481
    with Import => True,
         Convention => C,
         External_Name => "ncplane_resize_simple";
 
-   function ncplane_destroy (n : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1370
+   function ncplane_destroy (n : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1495
    with Import => True,
         Convention => C,
         External_Name => "ncplane_destroy";
 
-   function ncplane_set_base_cell (n : access ncplane; c : access constant nccell) return int  -- /usr/local/include/notcurses/notcurses.h:1376
+   function ncplane_set_base_cell (n : access ncplane; c : access constant nccell) return int  -- /usr/local/include/notcurses/notcurses.h:1501
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_base_cell";
@@ -1147,111 +1254,129 @@ package Notcurses_Thin is
      (n : access ncplane;
       egc : Interfaces.C.Strings.chars_ptr;
       stylemask : Unsigned_32;
-      channels : Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:1381
+      channels : Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:1507
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_base";
 
-   function ncplane_base (n : access ncplane; c : access nccell) return int  -- /usr/local/include/notcurses/notcurses.h:1386
+   function ncplane_base (n : access ncplane; c : access nccell) return int  -- /usr/local/include/notcurses/notcurses.h:1512
    with Import => True,
         Convention => C,
         External_Name => "ncplane_base";
 
-   function ncplane_move_yx
-     (n : access ncplane;
-      y : int;
-      x : int) return int  -- /usr/local/include/notcurses/notcurses.h:1391
-   with Import => True,
-        Convention => C,
-        External_Name => "ncplane_move_yx";
-
    procedure ncplane_yx
      (n : access constant ncplane;
       y : access int;
-      x : access int)  -- /usr/local/include/notcurses/notcurses.h:1395
+      x : access int)  -- /usr/local/include/notcurses/notcurses.h:1516
    with Import => True,
         Convention => C,
         External_Name => "ncplane_yx";
 
-   function ncplane_y (n : access constant ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1397
+   function ncplane_y (n : access constant ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1518
    with Import => True,
         Convention => C,
         External_Name => "ncplane_y";
 
-   function ncplane_x (n : access constant ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1398
+   function ncplane_x (n : access constant ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1519
    with Import => True,
         Convention => C,
         External_Name => "ncplane_x";
 
+   function ncplane_move_yx
+     (n : access ncplane;
+      y : int;
+      x : int) return int  -- /usr/local/include/notcurses/notcurses.h:1524
+   with Import => True,
+        Convention => C,
+        External_Name => "ncplane_move_yx";
+
+   function ncplane_moverel
+     (n : access ncplane;
+      y : int;
+      x : int) return int  -- /usr/local/include/notcurses/notcurses.h:1529
+   with Import => True,
+        Convention => C,
+        External_Name => "ncplane_moverel";
+
    procedure ncplane_abs_yx
      (n : access constant ncplane;
       y : access int;
-      x : access int)  -- /usr/local/include/notcurses/notcurses.h:1402
+      x : access int)  -- /usr/local/include/notcurses/notcurses.h:1537
    with Import => True,
         Convention => C,
         External_Name => "ncplane_abs_yx";
 
-   function ncplane_abs_y (n : access constant ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1404
+   function ncplane_abs_y (n : access constant ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1539
    with Import => True,
         Convention => C,
         External_Name => "ncplane_abs_y";
 
-   function ncplane_abs_x (n : access constant ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1405
+   function ncplane_abs_x (n : access constant ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1540
    with Import => True,
         Convention => C,
         External_Name => "ncplane_abs_x";
 
-   function ncplane_parent (n : access ncplane) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1408
+   function ncplane_parent (n : access ncplane) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1543
    with Import => True,
         Convention => C,
         External_Name => "ncplane_parent";
 
-   function ncplane_parent_const (n : access constant ncplane) return access constant ncplane  -- /usr/local/include/notcurses/notcurses.h:1409
+   function ncplane_parent_const (n : access constant ncplane) return access constant ncplane  -- /usr/local/include/notcurses/notcurses.h:1544
    with Import => True,
         Convention => C,
         External_Name => "ncplane_parent_const";
 
-   function ncplane_descendant_p (n : access constant ncplane; ancestor : access constant ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1413
+   function ncplane_descendant_p (n : access constant ncplane; ancestor : access constant ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1548
    with Import => True,
         Convention => C,
         External_Name => "ncplane_descendant_p";
 
-   procedure ncplane_move_top (n : access ncplane)  -- /usr/local/include/notcurses/notcurses.h:1423
+   procedure ncplane_move_top (n : access ncplane)  -- /usr/local/include/notcurses/notcurses.h:1558
    with Import => True,
         Convention => C,
         External_Name => "ncplane_move_top";
 
-   procedure ncplane_move_bottom (n : access ncplane)  -- /usr/local/include/notcurses/notcurses.h:1424
+   procedure ncplane_move_bottom (n : access ncplane)  -- /usr/local/include/notcurses/notcurses.h:1559
    with Import => True,
         Convention => C,
         External_Name => "ncplane_move_bottom";
 
-   function ncplane_move_above (n : access ncplane; above : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1429
+   function ncplane_move_above (n : access ncplane; above : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1564
    with Import => True,
         Convention => C,
         External_Name => "ncplane_move_above";
 
-   function ncplane_move_below (n : access ncplane; below : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1435
+   function ncplane_move_below (n : access ncplane; below : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1570
    with Import => True,
         Convention => C,
         External_Name => "ncplane_move_below";
 
-   function ncplane_below (n : access ncplane) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1439
+   function ncplane_below (n : access ncplane) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1574
    with Import => True,
         Convention => C,
         External_Name => "ncplane_below";
 
-   function ncplane_above (n : access ncplane) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1440
+   function ncplane_above (n : access ncplane) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:1578
    with Import => True,
         Convention => C,
         External_Name => "ncplane_above";
 
-   function ncplane_rotate_cw (n : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1448
+   function ncplane_scrollup (n : access ncplane; r : int) return int  -- /usr/local/include/notcurses/notcurses.h:1583
+   with Import => True,
+        Convention => C,
+        External_Name => "ncplane_scrollup";
+
+   function ncplane_scrollup_child (n : access ncplane; child : access constant ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1589
+   with Import => True,
+        Convention => C,
+        External_Name => "ncplane_scrollup_child";
+
+   function ncplane_rotate_cw (n : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1598
    with Import => True,
         Convention => C,
         External_Name => "ncplane_rotate_cw";
 
-   function ncplane_rotate_ccw (n : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1449
+   function ncplane_rotate_ccw (n : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1599
    with Import => True,
         Convention => C,
         External_Name => "ncplane_rotate_ccw";
@@ -1259,12 +1384,12 @@ package Notcurses_Thin is
    function ncplane_at_cursor
      (n : access ncplane;
       stylemask : access Unsigned_16;
-      channels : access Unsigned_64) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:1454
+      channels : access Unsigned_64) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:1604
    with Import => True,
         Convention => C,
         External_Name => "ncplane_at_cursor";
 
-   function ncplane_at_cursor_cell (n : access ncplane; c : access nccell) return int  -- /usr/local/include/notcurses/notcurses.h:1459
+   function ncplane_at_cursor_cell (n : access ncplane; c : access nccell) return int  -- /usr/local/include/notcurses/notcurses.h:1609
    with Import => True,
         Convention => C,
         External_Name => "ncplane_at_cursor_cell";
@@ -1274,7 +1399,7 @@ package Notcurses_Thin is
       y : int;
       x : int;
       stylemask : access Unsigned_16;
-      channels : access Unsigned_64) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:1464
+      channels : access Unsigned_64) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:1618
    with Import => True,
         Convention => C,
         External_Name => "ncplane_at_yx";
@@ -1283,27 +1408,27 @@ package Notcurses_Thin is
      (n : access ncplane;
       y : int;
       x : int;
-      c : access nccell) return int  -- /usr/local/include/notcurses/notcurses.h:1470
+      c : access nccell) return int  -- /usr/local/include/notcurses/notcurses.h:1626
    with Import => True,
         Convention => C,
         External_Name => "ncplane_at_yx_cell";
 
    function ncplane_contents
-     (n : access constant ncplane;
+     (n : access ncplane;
       begy : int;
       begx : int;
       leny : int;
-      lenx : int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:1476
+      lenx : int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:1632
    with Import => True,
         Convention => C,
         External_Name => "ncplane_contents";
 
-   function ncplane_set_userptr (n : access ncplane; opaque : System.Address) return System.Address  -- /usr/local/include/notcurses/notcurses.h:1482
+   function ncplane_set_userptr (n : access ncplane; opaque : System.Address) return System.Address  -- /usr/local/include/notcurses/notcurses.h:1638
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_userptr";
 
-   function ncplane_userptr (n : access ncplane) return System.Address  -- /usr/local/include/notcurses/notcurses.h:1483
+   function ncplane_userptr (n : access ncplane) return System.Address  -- /usr/local/include/notcurses/notcurses.h:1639
    with Import => True,
         Convention => C,
         External_Name => "ncplane_userptr";
@@ -1311,7 +1436,7 @@ package Notcurses_Thin is
    procedure ncplane_center_abs
      (n : access constant ncplane;
       y : access int;
-      x : access int)  -- /usr/local/include/notcurses/notcurses.h:1485
+      x : access int)  -- /usr/local/include/notcurses/notcurses.h:1641
    with Import => True,
         Convention => C,
         External_Name => "ncplane_center_abs";
@@ -1319,7 +1444,7 @@ package Notcurses_Thin is
    function notcurses_align
      (availu : int;
       align : ncalign_e;
-      u : int) return int  -- /usr/local/include/notcurses/notcurses.h:1492
+      u : int) return int  -- /usr/local/include/notcurses/notcurses.h:1648
    with Import => True,
         Convention => C,
         External_Name => "notcurses_align";
@@ -1327,23 +1452,15 @@ package Notcurses_Thin is
    function ncplane_halign
      (n : access constant ncplane;
       align : ncalign_e;
-      c : int) return int  -- /usr/local/include/notcurses/notcurses.h:1509
+      c : int) return int  -- /usr/local/include/notcurses/notcurses.h:1665
    with Import => True,
         Convention => C,
         External_Name => "ncplane_halign";
 
-   function ncplane_align
-     (n : access constant ncplane;
-      align : ncalign_e;
-      c : int) return int  -- /usr/local/include/notcurses/notcurses.h:1514
-   with Import => True,
-        Convention => C,
-        External_Name => "ncplane_align";
-
    function ncplane_valign
      (n : access constant ncplane;
       align : ncalign_e;
-      r : int) return int  -- /usr/local/include/notcurses/notcurses.h:1522
+      r : int) return int  -- /usr/local/include/notcurses/notcurses.h:1673
    with Import => True,
         Convention => C,
         External_Name => "ncplane_valign";
@@ -1351,12 +1468,20 @@ package Notcurses_Thin is
    function ncplane_cursor_move_yx
      (n : access ncplane;
       y : int;
-      x : int) return int  -- /usr/local/include/notcurses/notcurses.h:1529
+      x : int) return int  -- /usr/local/include/notcurses/notcurses.h:1680
    with Import => True,
         Convention => C,
         External_Name => "ncplane_cursor_move_yx";
 
-   procedure ncplane_home (n : access ncplane)  -- /usr/local/include/notcurses/notcurses.h:1532
+   function ncplane_cursor_move_rel
+     (n : access ncplane;
+      y : int;
+      x : int) return int  -- /usr/local/include/notcurses/notcurses.h:1686
+   with Import => True,
+        Convention => C,
+        External_Name => "ncplane_cursor_move_rel";
+
+   procedure ncplane_home (n : access ncplane)  -- /usr/local/include/notcurses/notcurses.h:1690
    with Import => True,
         Convention => C,
         External_Name => "ncplane_home";
@@ -1364,17 +1489,17 @@ package Notcurses_Thin is
    procedure ncplane_cursor_yx
      (n : access constant ncplane;
       y : access int;
-      x : access int)  -- /usr/local/include/notcurses/notcurses.h:1535
+      x : access int)  -- /usr/local/include/notcurses/notcurses.h:1694
    with Import => True,
         Convention => C,
         External_Name => "ncplane_cursor_yx";
 
-   function ncplane_channels (n : access constant ncplane) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:1538
+   function ncplane_channels (n : access constant ncplane) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:1698
    with Import => True,
         Convention => C,
         External_Name => "ncplane_channels";
 
-   function ncplane_styles (n : access constant ncplane) return Unsigned_16  -- /usr/local/include/notcurses/notcurses.h:1541
+   function ncplane_styles (n : access constant ncplane) return Unsigned_16  -- /usr/local/include/notcurses/notcurses.h:1702
    with Import => True,
         Convention => C,
         External_Name => "ncplane_styles";
@@ -1383,12 +1508,12 @@ package Notcurses_Thin is
      (n : access ncplane;
       y : int;
       x : int;
-      c : access constant nccell) return int  -- /usr/local/include/notcurses/notcurses.h:1547
+      c : access constant nccell) return int  -- /usr/local/include/notcurses/notcurses.h:1709
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putc_yx";
 
-   function ncplane_putc (n : access ncplane; c : access constant nccell) return int  -- /usr/local/include/notcurses/notcurses.h:1551
+   function ncplane_putc (n : access ncplane; c : access constant nccell) return int  -- /usr/local/include/notcurses/notcurses.h:1714
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putc";
@@ -1397,22 +1522,22 @@ package Notcurses_Thin is
      (n : access ncplane;
       y : int;
       x : int;
-      c : char) return int  -- /usr/local/include/notcurses/notcurses.h:1559
+      c : char) return int  -- /usr/local/include/notcurses/notcurses.h:1722
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putchar_yx";
 
-   function wcwidth return int  -- /usr/local/include/notcurses/notcurses.h:1560
+   function wcwidth return int  -- /usr/local/include/notcurses/notcurses.h:1723
    with Import => True,
         Convention => C,
         External_Name => "wcwidth";
 
-   function ncplane_putchar (n : access ncplane; c : char) return int  -- /usr/local/include/notcurses/notcurses.h:1566
+   function ncplane_putchar (n : access ncplane; c : char) return int  -- /usr/local/include/notcurses/notcurses.h:1729
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putchar";
 
-   function ncplane_putchar_stained (n : access ncplane; c : char) return int  -- /usr/local/include/notcurses/notcurses.h:1572
+   function ncplane_putchar_stained (n : access ncplane; c : char) return int  -- /usr/local/include/notcurses/notcurses.h:1735
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putchar_stained";
@@ -1422,7 +1547,7 @@ package Notcurses_Thin is
       y : int;
       x : int;
       gclust : Interfaces.C.Strings.chars_ptr;
-      sbytes : access int) return int  -- /usr/local/include/notcurses/notcurses.h:1579
+      sbytes : access int) return int  -- /usr/local/include/notcurses/notcurses.h:1742
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putegc_yx";
@@ -1430,7 +1555,7 @@ package Notcurses_Thin is
    function ncplane_putegc
      (n : access ncplane;
       gclust : Interfaces.C.Strings.chars_ptr;
-      sbytes : access int) return int  -- /usr/local/include/notcurses/notcurses.h:1583
+      sbytes : access int) return int  -- /usr/local/include/notcurses/notcurses.h:1746
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putegc";
@@ -1438,7 +1563,7 @@ package Notcurses_Thin is
    function ncplane_putegc_stained
      (n : access ncplane;
       gclust : Interfaces.C.Strings.chars_ptr;
-      sbytes : access int) return int  -- /usr/local/include/notcurses/notcurses.h:1589
+      sbytes : access int) return int  -- /usr/local/include/notcurses/notcurses.h:1752
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putegc_stained";
@@ -1446,7 +1571,7 @@ package Notcurses_Thin is
    function ncplane_putwegc
      (n : access ncplane;
       gclust : access Wide_Character;
-      sbytes : access int) return int  -- /usr/local/include/notcurses/notcurses.h:1597
+      sbytes : access int) return int  -- /usr/local/include/notcurses/notcurses.h:1760
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putwegc";
@@ -1456,7 +1581,7 @@ package Notcurses_Thin is
       y : int;
       x : int;
       gclust : access Wide_Character;
-      sbytes : access int) return int  -- /usr/local/include/notcurses/notcurses.h:1616
+      sbytes : access int) return int  -- /usr/local/include/notcurses/notcurses.h:1779
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putwegc_yx";
@@ -1464,7 +1589,7 @@ package Notcurses_Thin is
    function ncplane_putwegc_stained
      (n : access ncplane;
       gclust : access Wide_Character;
-      sbytes : access int) return int  -- /usr/local/include/notcurses/notcurses.h:1626
+      sbytes : access int) return int  -- /usr/local/include/notcurses/notcurses.h:1789
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putwegc_stained";
@@ -1473,21 +1598,26 @@ package Notcurses_Thin is
      (n : access ncplane;
       y : int;
       x : int;
-      gclusters : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:1634
+      gclusters : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:1797
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putstr_yx";
+
+   function ncplane_putstr (n : access ncplane; gclustarr : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:1800
+   with Import => True,
+        Convention => C,
+        External_Name => "ncplane_putstr";
 
    function ncplane_putstr_aligned
      (n : access ncplane;
       y : int;
       align : ncalign_e;
-      s : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:1641
+      s : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:1804
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putstr_aligned";
 
-   function ncplane_putstr_stained (n : access ncplane; s : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:1646
+   function ncplane_putstr_stained (n : access ncplane; s : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:1809
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putstr_stained";
@@ -1497,7 +1627,7 @@ package Notcurses_Thin is
       y : int;
       x : int;
       s : Interfaces.C.size_t;
-      gclusters : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:1654
+      gclusters : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:1817
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putnstr_yx";
@@ -1505,7 +1635,7 @@ package Notcurses_Thin is
    function ncplane_putnstr
      (n : access ncplane;
       s : Interfaces.C.size_t;
-      gclustarr : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:1657
+      gclustarr : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:1820
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putnstr";
@@ -1515,7 +1645,7 @@ package Notcurses_Thin is
       y : int;
       align : ncalign_e;
       s : Interfaces.C.size_t;
-      gclustarr : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:1661
+      gclustarr : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:1824
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putnstr_aligned";
@@ -1524,7 +1654,7 @@ package Notcurses_Thin is
      (n : access ncplane;
       y : int;
       x : int;
-      gclustarr : access Wide_Character) return int  -- /usr/local/include/notcurses/notcurses.h:1666
+      gclustarr : access Wide_Character) return int  -- /usr/local/include/notcurses/notcurses.h:1830
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putwstr_yx";
@@ -1533,22 +1663,22 @@ package Notcurses_Thin is
      (n : access ncplane;
       y : int;
       align : ncalign_e;
-      gclustarr : access Wide_Character) return int  -- /usr/local/include/notcurses/notcurses.h:1684
+      gclustarr : access Wide_Character) return int  -- /usr/local/include/notcurses/notcurses.h:1848
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putwstr_aligned";
 
-   function wcswidth return int  -- /usr/local/include/notcurses/notcurses.h:1686
+   function wcswidth return int  -- /usr/local/include/notcurses/notcurses.h:1850
    with Import => True,
         Convention => C,
         External_Name => "wcswidth";
 
-   function ncplane_putwstr_stained (n : access ncplane; gclustarr : access Wide_Character) return int  -- /usr/local/include/notcurses/notcurses.h:1694
+   function ncplane_putwstr_stained (n : access ncplane; gclustarr : access Wide_Character) return int  -- /usr/local/include/notcurses/notcurses.h:1858
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putwstr_stained";
 
-   function ncplane_putwstr (n : access ncplane; gclustarr : access Wide_Character) return int  -- /usr/local/include/notcurses/notcurses.h:1697
+   function ncplane_putwstr (n : access ncplane; gclustarr : access Wide_Character) return int  -- /usr/local/include/notcurses/notcurses.h:1861
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putwstr";
@@ -1557,17 +1687,17 @@ package Notcurses_Thin is
      (n : access ncplane;
       y : int;
       x : int;
-      w : Wide_Character) return int  -- /usr/local/include/notcurses/notcurses.h:1705
+      w : Wide_Character) return int  -- /usr/local/include/notcurses/notcurses.h:1869
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putwc_yx";
 
-   function ncplane_putwc (n : access ncplane; w : Wide_Character) return int  -- /usr/local/include/notcurses/notcurses.h:1712
+   function ncplane_putwc (n : access ncplane; w : Wide_Character) return int  -- /usr/local/include/notcurses/notcurses.h:1876
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putwc";
 
-   function ncplane_putwc_stained (n : access ncplane; w : Wide_Character) return int  -- /usr/local/include/notcurses/notcurses.h:1719
+   function ncplane_putwc_stained (n : access ncplane; w : Wide_Character) return int  -- /usr/local/include/notcurses/notcurses.h:1883
    with Import => True,
         Convention => C,
         External_Name => "ncplane_putwc_stained";
@@ -1577,7 +1707,7 @@ package Notcurses_Thin is
       y : int;
       align : ncalign_e;
       format : Interfaces.C.Strings.chars_ptr;
-      ap : access System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:1725
+      ap : access System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:1889
    with Import => True,
         Convention => C,
         External_Name => "ncplane_vprintf_aligned";
@@ -1587,7 +1717,7 @@ package Notcurses_Thin is
       y : int;
       x : int;
       format : Interfaces.C.Strings.chars_ptr;
-      ap : access System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:1728
+      ap : access System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:1892
    with Import => True,
         Convention => C,
         External_Name => "ncplane_vprintf_yx";
@@ -1595,7 +1725,7 @@ package Notcurses_Thin is
    function ncplane_vprintf
      (n : access ncplane;
       format : Interfaces.C.Strings.chars_ptr;
-      ap : access System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:1732
+      ap : access System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:1896
    with Import => True,
         Convention => C,
         External_Name => "ncplane_vprintf";
@@ -1603,13 +1733,13 @@ package Notcurses_Thin is
    function ncplane_vprintf_stained
      (n : access ncplane;
       format : Interfaces.C.Strings.chars_ptr;
-      ap : access System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:1736
+      ap : access System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:1900
    with Import => True,
         Convention => C,
         External_Name => "ncplane_vprintf_stained";
 
    function ncplane_printf (n : access ncplane; format : Interfaces.C.Strings.chars_ptr  -- , ...
-      ) return int  -- /usr/local/include/notcurses/notcurses.h:1743
+      ) return int  -- /usr/local/include/notcurses/notcurses.h:1907
    with Import => True,
         Convention => C,
         External_Name => "ncplane_printf";
@@ -1619,7 +1749,7 @@ package Notcurses_Thin is
       y : int;
       x : int;
       format : Interfaces.C.Strings.chars_ptr  -- , ...
-      ) return int  -- /usr/local/include/notcurses/notcurses.h:1756
+      ) return int  -- /usr/local/include/notcurses/notcurses.h:1920
    with Import => True,
         Convention => C,
         External_Name => "ncplane_printf_yx";
@@ -1629,13 +1759,13 @@ package Notcurses_Thin is
       y : int;
       align : ncalign_e;
       format : Interfaces.C.Strings.chars_ptr  -- , ...
-      ) return int  -- /usr/local/include/notcurses/notcurses.h:1770
+      ) return int  -- /usr/local/include/notcurses/notcurses.h:1934
    with Import => True,
         Convention => C,
         External_Name => "ncplane_printf_aligned";
 
    function ncplane_printf_stained (n : access ncplane; format : Interfaces.C.Strings.chars_ptr  -- , ...
-      ) return int  -- /usr/local/include/notcurses/notcurses.h:1783
+      ) return int  -- /usr/local/include/notcurses/notcurses.h:1947
    with Import => True,
         Convention => C,
         External_Name => "ncplane_printf_stained";
@@ -1645,7 +1775,7 @@ package Notcurses_Thin is
       y : int;
       align : ncalign_e;
       text : Interfaces.C.Strings.chars_ptr;
-      bytes : access Interfaces.C.size_t) return int  -- /usr/local/include/notcurses/notcurses.h:1810
+      bytes : access Interfaces.C.size_t) return int  -- /usr/local/include/notcurses/notcurses.h:1974
    with Import => True,
         Convention => C,
         External_Name => "ncplane_puttext";
@@ -1655,7 +1785,7 @@ package Notcurses_Thin is
       c : access constant nccell;
       len : int;
       c1 : Unsigned_64;
-      c2 : Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:1819
+      c2 : Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:1983
    with Import => True,
         Convention => C,
         External_Name => "ncplane_hline_interp";
@@ -1663,7 +1793,7 @@ package Notcurses_Thin is
    function ncplane_hline
      (n : access ncplane;
       c : access constant nccell;
-      len : int) return int  -- /usr/local/include/notcurses/notcurses.h:1823
+      len : int) return int  -- /usr/local/include/notcurses/notcurses.h:1987
    with Import => True,
         Convention => C,
         External_Name => "ncplane_hline";
@@ -1673,7 +1803,7 @@ package Notcurses_Thin is
       c : access constant nccell;
       len : int;
       c1 : Unsigned_64;
-      c2 : Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:1827
+      c2 : Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:1991
    with Import => True,
         Convention => C,
         External_Name => "ncplane_vline_interp";
@@ -1681,7 +1811,7 @@ package Notcurses_Thin is
    function ncplane_vline
      (n : access ncplane;
       c : access constant nccell;
-      len : int) return int  -- /usr/local/include/notcurses/notcurses.h:1831
+      len : int) return int  -- /usr/local/include/notcurses/notcurses.h:1995
    with Import => True,
         Convention => C,
         External_Name => "ncplane_vline";
@@ -1696,7 +1826,7 @@ package Notcurses_Thin is
       vline : access constant nccell;
       ystop : int;
       xstop : int;
-      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:1864
+      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2028
    with Import => True,
         Convention => C,
         External_Name => "ncplane_box";
@@ -1711,7 +1841,7 @@ package Notcurses_Thin is
       vline : access constant nccell;
       ylen : int;
       xlen : int;
-      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:1873
+      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2037
    with Import => True,
         Convention => C,
         External_Name => "ncplane_box_sized";
@@ -1724,7 +1854,7 @@ package Notcurses_Thin is
       lr : access constant nccell;
       hline : access constant nccell;
       vline : access constant nccell;
-      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:1883
+      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2047
    with Import => True,
         Convention => C,
         External_Name => "ncplane_perimeter";
@@ -1733,7 +1863,7 @@ package Notcurses_Thin is
      (n : access ncplane;
       y : int;
       x : int;
-      c : access constant nccell) return int  -- /usr/local/include/notcurses/notcurses.h:1899
+      c : access constant nccell) return int  -- /usr/local/include/notcurses/notcurses.h:2063
    with Import => True,
         Convention => C,
         External_Name => "ncplane_polyfill_yx";
@@ -1747,7 +1877,7 @@ package Notcurses_Thin is
       ll : Unsigned_64;
       lr : Unsigned_64;
       ystop : int;
-      xstop : int) return int  -- /usr/local/include/notcurses/notcurses.h:1920
+      xstop : int) return int  -- /usr/local/include/notcurses/notcurses.h:2084
    with Import => True,
         Convention => C,
         External_Name => "ncplane_gradient";
@@ -1759,7 +1889,7 @@ package Notcurses_Thin is
       ll : Unsigned_32;
       lr : Unsigned_32;
       ystop : int;
-      xstop : int) return int  -- /usr/local/include/notcurses/notcurses.h:1928
+      xstop : int) return int  -- /usr/local/include/notcurses/notcurses.h:2092
    with Import => True,
         Convention => C,
         External_Name => "ncplane_highgradient";
@@ -1773,7 +1903,7 @@ package Notcurses_Thin is
       ll : Unsigned_64;
       lr : Unsigned_64;
       ylen : int;
-      xlen : int) return int  -- /usr/local/include/notcurses/notcurses.h:1934
+      xlen : int) return int  -- /usr/local/include/notcurses/notcurses.h:2098
    with Import => True,
         Convention => C,
         External_Name => "ncplane_gradient_sized";
@@ -1785,7 +1915,7 @@ package Notcurses_Thin is
       ll : Unsigned_32;
       lr : Unsigned_32;
       ylen : int;
-      xlen : int) return int  -- /usr/local/include/notcurses/notcurses.h:1947
+      xlen : int) return int  -- /usr/local/include/notcurses/notcurses.h:2111
    with Import => True,
         Convention => C,
         External_Name => "ncplane_highgradient_sized";
@@ -1794,7 +1924,7 @@ package Notcurses_Thin is
      (n : access ncplane;
       ystop : int;
       xstop : int;
-      stylemask : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:1952
+      stylemask : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:2116
    with Import => True,
         Convention => C,
         External_Name => "ncplane_format";
@@ -1806,12 +1936,12 @@ package Notcurses_Thin is
       ul : Unsigned_64;
       ur : Unsigned_64;
       ll : Unsigned_64;
-      lr : Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:1956
+      lr : Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:2120
    with Import => True,
         Convention => C,
         External_Name => "ncplane_stain";
 
-   function ncplane_mergedown_simple (src : access ncplane; dst : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:1961
+   function ncplane_mergedown_simple (src : access ncplane; dst : access ncplane) return int  -- /usr/local/include/notcurses/notcurses.h:2125
    with Import => True,
         Convention => C,
         External_Name => "ncplane_mergedown_simple";
@@ -1824,12 +1954,12 @@ package Notcurses_Thin is
       leny : int;
       lenx : int;
       dsty : int;
-      dstx : int) return int  -- /usr/local/include/notcurses/notcurses.h:1974
+      dstx : int) return int  -- /usr/local/include/notcurses/notcurses.h:2138
    with Import => True,
         Convention => C,
         External_Name => "ncplane_mergedown";
 
-   procedure ncplane_erase (n : access ncplane)  -- /usr/local/include/notcurses/notcurses.h:1983
+   procedure ncplane_erase (n : access ncplane)  -- /usr/local/include/notcurses/notcurses.h:2147
    with Import => True,
         Convention => C,
         External_Name => "ncplane_erase";
@@ -1839,27 +1969,27 @@ package Notcurses_Thin is
       ystart : int;
       xstart : int;
       ylen : int;
-      xlen : int) return int  -- /usr/local/include/notcurses/notcurses.h:1990
+      xlen : int) return int  -- /usr/local/include/notcurses/notcurses.h:2154
    with Import => True,
         Convention => C,
         External_Name => "ncplane_erase_region";
 
-   function nccell_fg_rgb (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:1996
+   function nccell_fg_rgb (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2160
    with Import => True,
         Convention => C,
         External_Name => "nccell_fg_rgb";
 
-   function nccell_bg_rgb (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2002
+   function nccell_bg_rgb (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2166
    with Import => True,
         Convention => C,
         External_Name => "nccell_bg_rgb";
 
-   function nccell_fg_alpha (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2008
+   function nccell_fg_alpha (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2172
    with Import => True,
         Convention => C,
         External_Name => "nccell_fg_alpha";
 
-   function nccell_bg_alpha (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2014
+   function nccell_bg_alpha (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2178
    with Import => True,
         Convention => C,
         External_Name => "nccell_bg_alpha";
@@ -1868,7 +1998,7 @@ package Notcurses_Thin is
      (cl : access constant nccell;
       r : access unsigned;
       g : access unsigned;
-      b : access unsigned) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2020
+      b : access unsigned) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2184
    with Import => True,
         Convention => C,
         External_Name => "nccell_fg_rgb8";
@@ -1877,16 +2007,16 @@ package Notcurses_Thin is
      (cl : access constant nccell;
       r : access unsigned;
       g : access unsigned;
-      b : access unsigned) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2026
+      b : access unsigned) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2190
    with Import => True,
         Convention => C,
         External_Name => "nccell_bg_rgb8";
 
    function nccell_set_fg_rgb8
      (cl : access nccell;
-      r : int;
-      g : int;
-      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:2033
+      r : unsigned;
+      g : unsigned;
+      b : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2197
    with Import => True,
         Convention => C,
         External_Name => "nccell_set_fg_rgb8";
@@ -1895,31 +2025,31 @@ package Notcurses_Thin is
      (cl : access nccell;
       r : int;
       g : int;
-      b : int)  -- /usr/local/include/notcurses/notcurses.h:2039
+      b : int)  -- /usr/local/include/notcurses/notcurses.h:2203
    with Import => True,
         Convention => C,
         External_Name => "nccell_set_fg_rgb8_clipped";
 
-   function nccell_set_fg_rgb (c : access nccell; channel : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:2045
+   function nccell_set_fg_rgb (c : access nccell; channel : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:2209
    with Import => True,
         Convention => C,
         External_Name => "nccell_set_fg_rgb";
 
-   function nccell_set_fg_palindex (cl : access nccell; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:2052
+   function nccell_set_fg_palindex (cl : access nccell; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:2216
    with Import => True,
         Convention => C,
         External_Name => "nccell_set_fg_palindex";
 
-   function nccell_fg_palindex (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2057
+   function nccell_fg_palindex (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2221
    with Import => True,
         Convention => C,
         External_Name => "nccell_fg_palindex";
 
    function nccell_set_bg_rgb8
      (cl : access nccell;
-      r : int;
-      g : int;
-      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:2064
+      r : unsigned;
+      g : unsigned;
+      b : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2228
    with Import => True,
         Convention => C,
         External_Name => "nccell_set_bg_rgb8";
@@ -1928,102 +2058,102 @@ package Notcurses_Thin is
      (cl : access nccell;
       r : int;
       g : int;
-      b : int)  -- /usr/local/include/notcurses/notcurses.h:2070
+      b : int)  -- /usr/local/include/notcurses/notcurses.h:2234
    with Import => True,
         Convention => C,
         External_Name => "nccell_set_bg_rgb8_clipped";
 
-   function nccell_set_bg_rgb (c : access nccell; channel : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:2077
+   function nccell_set_bg_rgb (c : access nccell; channel : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:2241
    with Import => True,
         Convention => C,
         External_Name => "nccell_set_bg_rgb";
 
-   function nccell_set_bg_palindex (cl : access nccell; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:2084
+   function nccell_set_bg_palindex (cl : access nccell; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:2248
    with Import => True,
         Convention => C,
         External_Name => "nccell_set_bg_palindex";
 
-   function nccell_bg_palindex (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2089
+   function nccell_bg_palindex (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2253
    with Import => True,
         Convention => C,
         External_Name => "nccell_bg_palindex";
 
-   function nccell_fg_default_p (cl : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:2095
+   function nccell_fg_default_p (cl : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:2259
    with Import => True,
         Convention => C,
         External_Name => "nccell_fg_default_p";
 
-   function nccell_fg_palindex_p (cl : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:2100
+   function nccell_fg_palindex_p (cl : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:2264
    with Import => True,
         Convention => C,
         External_Name => "nccell_fg_palindex_p";
 
-   function nccell_bg_default_p (cl : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:2108
+   function nccell_bg_default_p (cl : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:2272
    with Import => True,
         Convention => C,
         External_Name => "nccell_bg_default_p";
 
-   function nccell_bg_palindex_p (cl : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:2113
+   function nccell_bg_palindex_p (cl : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:2277
    with Import => True,
         Convention => C,
         External_Name => "nccell_bg_palindex_p";
 
-   function ncplane_bchannel (n : access constant ncplane) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2119
+   function ncplane_bchannel (n : access constant ncplane) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2283
    with Import => True,
         Convention => C,
         External_Name => "ncplane_bchannel";
 
-   function ncplane_fchannel (n : access constant ncplane) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2125
+   function ncplane_fchannel (n : access constant ncplane) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2289
    with Import => True,
         Convention => C,
         External_Name => "ncplane_fchannel";
 
-   procedure ncplane_set_channels (n : access ncplane; channels : Unsigned_64)  -- /usr/local/include/notcurses/notcurses.h:2129
+   procedure ncplane_set_channels (n : access ncplane; channels : Unsigned_64)  -- /usr/local/include/notcurses/notcurses.h:2293
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_channels";
 
-   procedure ncplane_set_styles (n : access ncplane; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:2133
+   procedure ncplane_set_styles (n : access ncplane; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:2297
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_styles";
 
-   procedure ncplane_on_styles (n : access ncplane; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:2136
+   procedure ncplane_on_styles (n : access ncplane; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:2300
    with Import => True,
         Convention => C,
         External_Name => "ncplane_on_styles";
 
-   procedure ncplane_off_styles (n : access ncplane; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:2139
+   procedure ncplane_off_styles (n : access ncplane; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:2303
    with Import => True,
         Convention => C,
         External_Name => "ncplane_off_styles";
 
-   function ncplane_fg_rgb (n : access constant ncplane) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2143
+   function ncplane_fg_rgb (n : access constant ncplane) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2307
    with Import => True,
         Convention => C,
         External_Name => "ncplane_fg_rgb";
 
-   function ncplane_bg_rgb (n : access constant ncplane) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2149
+   function ncplane_bg_rgb (n : access constant ncplane) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2313
    with Import => True,
         Convention => C,
         External_Name => "ncplane_bg_rgb";
 
-   function ncplane_fg_alpha (n : access constant ncplane) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2155
+   function ncplane_fg_alpha (n : access constant ncplane) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2319
    with Import => True,
         Convention => C,
         External_Name => "ncplane_fg_alpha";
 
-   function ncplane_fg_default_p (n : access constant ncplane) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:2161
+   function ncplane_fg_default_p (n : access constant ncplane) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:2325
    with Import => True,
         Convention => C,
         External_Name => "ncplane_fg_default_p";
 
-   function ncplane_bg_alpha (n : access constant ncplane) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2167
+   function ncplane_bg_alpha (n : access constant ncplane) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2331
    with Import => True,
         Convention => C,
         External_Name => "ncplane_bg_alpha";
 
-   function ncplane_bg_default_p (n : access constant ncplane) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:2173
+   function ncplane_bg_default_p (n : access constant ncplane) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:2337
    with Import => True,
         Convention => C,
         External_Name => "ncplane_bg_default_p";
@@ -2032,7 +2162,7 @@ package Notcurses_Thin is
      (n : access constant ncplane;
       r : access unsigned;
       g : access unsigned;
-      b : access unsigned) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2179
+      b : access unsigned) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2343
    with Import => True,
         Convention => C,
         External_Name => "ncplane_fg_rgb8";
@@ -2041,35 +2171,35 @@ package Notcurses_Thin is
      (n : access constant ncplane;
       r : access unsigned;
       g : access unsigned;
-      b : access unsigned) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2185
+      b : access unsigned) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2349
    with Import => True,
         Convention => C,
         External_Name => "ncplane_bg_rgb8";
 
-   function ncplane_set_fchannel (n : access ncplane; channel : Unsigned_32) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:2190
+   function ncplane_set_fchannel (n : access ncplane; channel : Unsigned_32) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:2354
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_fchannel";
 
-   function ncplane_set_bchannel (n : access ncplane; channel : Unsigned_32) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:2191
+   function ncplane_set_bchannel (n : access ncplane; channel : Unsigned_32) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:2355
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_bchannel";
 
    function ncplane_set_fg_rgb8
      (n : access ncplane;
-      r : int;
-      g : int;
-      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:2199
+      r : unsigned;
+      g : unsigned;
+      b : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2363
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_fg_rgb8";
 
    function ncplane_set_bg_rgb8
      (n : access ncplane;
-      r : int;
-      g : int;
-      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:2200
+      r : unsigned;
+      g : unsigned;
+      b : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2364
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_bg_rgb8";
@@ -2078,7 +2208,7 @@ package Notcurses_Thin is
      (n : access ncplane;
       r : int;
       g : int;
-      b : int)  -- /usr/local/include/notcurses/notcurses.h:2203
+      b : int)  -- /usr/local/include/notcurses/notcurses.h:2367
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_bg_rgb8_clipped";
@@ -2087,47 +2217,47 @@ package Notcurses_Thin is
      (n : access ncplane;
       r : int;
       g : int;
-      b : int)  -- /usr/local/include/notcurses/notcurses.h:2204
+      b : int)  -- /usr/local/include/notcurses/notcurses.h:2368
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_fg_rgb8_clipped";
 
-   function ncplane_set_fg_rgb (n : access ncplane; channel : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:2207
+   function ncplane_set_fg_rgb (n : access ncplane; channel : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:2371
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_fg_rgb";
 
-   function ncplane_set_bg_rgb (n : access ncplane; channel : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:2208
+   function ncplane_set_bg_rgb (n : access ncplane; channel : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:2372
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_bg_rgb";
 
-   procedure ncplane_set_fg_default (n : access ncplane)  -- /usr/local/include/notcurses/notcurses.h:2211
+   procedure ncplane_set_fg_default (n : access ncplane)  -- /usr/local/include/notcurses/notcurses.h:2375
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_fg_default";
 
-   procedure ncplane_set_bg_default (n : access ncplane)  -- /usr/local/include/notcurses/notcurses.h:2212
+   procedure ncplane_set_bg_default (n : access ncplane)  -- /usr/local/include/notcurses/notcurses.h:2376
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_bg_default";
 
-   function ncplane_set_fg_palindex (n : access ncplane; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:2216
+   function ncplane_set_fg_palindex (n : access ncplane; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:2380
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_fg_palindex";
 
-   function ncplane_set_bg_palindex (n : access ncplane; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:2217
+   function ncplane_set_bg_palindex (n : access ncplane; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:2381
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_bg_palindex";
 
-   function ncplane_set_fg_alpha (n : access ncplane; alpha : int) return int  -- /usr/local/include/notcurses/notcurses.h:2220
+   function ncplane_set_fg_alpha (n : access ncplane; alpha : int) return int  -- /usr/local/include/notcurses/notcurses.h:2384
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_fg_alpha";
 
-   function ncplane_set_bg_alpha (n : access ncplane; alpha : int) return int  -- /usr/local/include/notcurses/notcurses.h:2221
+   function ncplane_set_bg_alpha (n : access ncplane; alpha : int) return int  -- /usr/local/include/notcurses/notcurses.h:2385
    with Import => True,
         Convention => C,
         External_Name => "ncplane_set_bg_alpha";
@@ -2137,13 +2267,13 @@ package Notcurses_Thin is
          arg2 : access ncplane;
          arg3 : access constant System.OS_Interface.timespec;
          arg4 : System.Address) return int
-   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:2226
+   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:2390
 
    function ncplane_fadeout
      (n : access ncplane;
       ts : access constant System.OS_Interface.timespec;
       fader : fadecb;
-      curry : System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:2233
+      curry : System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:2397
    with Import => True,
         Convention => C,
         External_Name => "ncplane_fadeout";
@@ -2152,17 +2282,17 @@ package Notcurses_Thin is
      (n : access ncplane;
       ts : access constant System.OS_Interface.timespec;
       fader : fadecb;
-      curry : System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:2239
+      curry : System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:2403
    with Import => True,
         Convention => C,
         External_Name => "ncplane_fadein";
 
-   function ncfadectx_setup (n : access ncplane) return access ncfadectx  -- /usr/local/include/notcurses/notcurses.h:2244
+   function ncfadectx_setup (n : access ncplane) return access ncfadectx  -- /usr/local/include/notcurses/notcurses.h:2408
    with Import => True,
         Convention => C,
         External_Name => "ncfadectx_setup";
 
-   function ncfadectx_iterations (nctx : access constant ncfadectx) return int  -- /usr/local/include/notcurses/notcurses.h:2247
+   function ncfadectx_iterations (nctx : access constant ncfadectx) return int  -- /usr/local/include/notcurses/notcurses.h:2411
    with Import => True,
         Convention => C,
         External_Name => "ncfadectx_iterations";
@@ -2172,7 +2302,7 @@ package Notcurses_Thin is
       nctx : access ncfadectx;
       iter : int;
       fader : fadecb;
-      curry : System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:2251
+      curry : System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:2415
    with Import => True,
         Convention => C,
         External_Name => "ncplane_fadeout_iteration";
@@ -2182,7 +2312,7 @@ package Notcurses_Thin is
       nctx : access ncfadectx;
       iter : int;
       fader : fadecb;
-      curry : System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:2256
+      curry : System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:2420
    with Import => True,
         Convention => C,
         External_Name => "ncplane_fadein_iteration";
@@ -2191,12 +2321,12 @@ package Notcurses_Thin is
      (n : access ncplane;
       ts : access constant System.OS_Interface.timespec;
       fader : fadecb;
-      curry : System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:2264
+      curry : System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:2428
    with Import => True,
         Convention => C,
         External_Name => "ncplane_pulse";
 
-   procedure ncfadectx_free (nctx : access ncfadectx)  -- /usr/local/include/notcurses/notcurses.h:2267
+   procedure ncfadectx_free (nctx : access ncfadectx)  -- /usr/local/include/notcurses/notcurses.h:2431
    with Import => True,
         Convention => C,
         External_Name => "ncfadectx_free";
@@ -2211,7 +2341,7 @@ package Notcurses_Thin is
       lr : access nccell;
       hl : access nccell;
       vl : access nccell;
-      gclusters : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:2274
+      gclusters : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:2438
    with Import => True,
         Convention => C,
         External_Name => "nccells_load_box";
@@ -2225,10 +2355,52 @@ package Notcurses_Thin is
       ll : access nccell;
       lr : access nccell;
       hl : access nccell;
-      vl : access nccell) return int  -- /usr/local/include/notcurses/notcurses.h:2299
+      vl : access nccell) return int  -- /usr/local/include/notcurses/notcurses.h:2463
    with Import => True,
         Convention => C,
         External_Name => "nccells_rounded_box";
+
+   function nccells_ascii_box
+     (n : access ncplane;
+      attr : Unsigned_32;
+      channels : Unsigned_64;
+      ul : access nccell;
+      ur : access nccell;
+      ll : access nccell;
+      lr : access nccell;
+      hl : access nccell;
+      vl : access nccell) return int  -- /usr/local/include/notcurses/notcurses.h:2468
+   with Import => True,
+        Convention => C,
+        External_Name => "nccells_ascii_box";
+
+   function nccells_light_box
+     (n : access ncplane;
+      attr : Unsigned_32;
+      channels : Unsigned_64;
+      ul : access nccell;
+      ur : access nccell;
+      ll : access nccell;
+      lr : access nccell;
+      hl : access nccell;
+      vl : access nccell) return int  -- /usr/local/include/notcurses/notcurses.h:2474
+   with Import => True,
+        Convention => C,
+        External_Name => "nccells_light_box";
+
+   function nccells_heavy_box
+     (n : access ncplane;
+      attr : Unsigned_32;
+      channels : Unsigned_64;
+      ul : access nccell;
+      ur : access nccell;
+      ll : access nccell;
+      lr : access nccell;
+      hl : access nccell;
+      vl : access nccell) return int  -- /usr/local/include/notcurses/notcurses.h:2483
+   with Import => True,
+        Convention => C,
+        External_Name => "nccells_heavy_box";
 
    function ncplane_rounded_box
      (n : access ncplane;
@@ -2236,7 +2408,7 @@ package Notcurses_Thin is
       channels : Unsigned_64;
       ystop : int;
       xstop : int;
-      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2304
+      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2492
    with Import => True,
         Convention => C,
         External_Name => "ncplane_rounded_box";
@@ -2245,7 +2417,7 @@ package Notcurses_Thin is
      (n : access ncplane;
       stylemask : Unsigned_32;
       channels : Unsigned_64;
-      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2320
+      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2508
    with Import => True,
         Convention => C,
         External_Name => "ncplane_perimeter_rounded";
@@ -2256,7 +2428,7 @@ package Notcurses_Thin is
       channels : Unsigned_64;
       ylen : int;
       xlen : int;
-      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2344
+      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2532
    with Import => True,
         Convention => C,
         External_Name => "ncplane_rounded_box_sized";
@@ -2270,7 +2442,7 @@ package Notcurses_Thin is
       ll : access nccell;
       lr : access nccell;
       hl : access nccell;
-      vl : access nccell) return int  -- /usr/local/include/notcurses/notcurses.h:2352
+      vl : access nccell) return int  -- /usr/local/include/notcurses/notcurses.h:2540
    with Import => True,
         Convention => C,
         External_Name => "nccells_double_box";
@@ -2281,7 +2453,7 @@ package Notcurses_Thin is
       channels : Unsigned_64;
       ystop : int;
       xstop : int;
-      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2357
+      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2545
    with Import => True,
         Convention => C,
         External_Name => "ncplane_double_box";
@@ -2290,7 +2462,7 @@ package Notcurses_Thin is
      (n : access ncplane;
       stylemask : Unsigned_32;
       channels : Unsigned_64;
-      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2373
+      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2561
    with Import => True,
         Convention => C,
         External_Name => "ncplane_perimeter_double";
@@ -2301,12 +2473,12 @@ package Notcurses_Thin is
       channels : Unsigned_64;
       ylen : int;
       xlen : int;
-      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2397
+      ctlword : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2585
    with Import => True,
         Convention => C,
         External_Name => "ncplane_double_box_sized";
 
-   function ncvisual_from_file (file : Interfaces.C.Strings.chars_ptr) return access ncvisual  -- /usr/local/include/notcurses/notcurses.h:2407
+   function ncvisual_from_file (file : Interfaces.C.Strings.chars_ptr) return access ncvisual  -- /usr/local/include/notcurses/notcurses.h:2595
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_from_file";
@@ -2315,19 +2487,51 @@ package Notcurses_Thin is
      (rgba : System.Address;
       rows : int;
       rowstride : int;
-      cols : int) return access ncvisual  -- /usr/local/include/notcurses/notcurses.h:2415
+      cols : int) return access ncvisual  -- /usr/local/include/notcurses/notcurses.h:2604
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_from_rgba";
+
+   function ncvisual_from_rgb_packed
+     (rgba : System.Address;
+      rows : int;
+      rowstride : int;
+      cols : int;
+      alpha : int) return access ncvisual  -- /usr/local/include/notcurses/notcurses.h:2610
+   with Import => True,
+        Convention => C,
+        External_Name => "ncvisual_from_rgb_packed";
+
+   function ncvisual_from_rgb_loose
+     (rgba : System.Address;
+      rows : int;
+      rowstride : int;
+      cols : int;
+      alpha : int) return access ncvisual  -- /usr/local/include/notcurses/notcurses.h:2617
+   with Import => True,
+        Convention => C,
+        External_Name => "ncvisual_from_rgb_loose";
 
    function ncvisual_from_bgra
      (bgra : System.Address;
       rows : int;
       rowstride : int;
-      cols : int) return access ncvisual  -- /usr/local/include/notcurses/notcurses.h:2419
+      cols : int) return access ncvisual  -- /usr/local/include/notcurses/notcurses.h:2625
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_from_bgra";
+
+   function ncvisual_from_palidx
+     (data : System.Address;
+      rows : int;
+      rowstride : int;
+      cols : int;
+      palsize : int;
+      pstride : int;
+      palette : access Unsigned_32) return access ncvisual  -- /usr/local/include/notcurses/notcurses.h:2632
+   with Import => True,
+        Convention => C,
+        External_Name => "ncvisual_from_palidx";
 
    function ncvisual_from_plane
      (n : access constant ncplane;
@@ -2335,25 +2539,25 @@ package Notcurses_Thin is
       begy : int;
       begx : int;
       leny : int;
-      lenx : int) return access ncvisual  -- /usr/local/include/notcurses/notcurses.h:2427
+      lenx : int) return access ncvisual  -- /usr/local/include/notcurses/notcurses.h:2643
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_from_plane";
 
    type ncvisual_options is record
-      n : access ncplane;  -- /usr/local/include/notcurses/notcurses.h:2444
-      scaling : aliased ncscale_e;  -- /usr/local/include/notcurses/notcurses.h:2448
-      y : aliased int;  -- /usr/local/include/notcurses/notcurses.h:2454
-      x : aliased int;  -- /usr/local/include/notcurses/notcurses.h:2454
-      begy : aliased int;  -- /usr/local/include/notcurses/notcurses.h:2459
-      begx : aliased int;  -- /usr/local/include/notcurses/notcurses.h:2459
-      leny : aliased int;  -- /usr/local/include/notcurses/notcurses.h:2460
-      lenx : aliased int;  -- /usr/local/include/notcurses/notcurses.h:2460
-      blitter : aliased ncblitter_e;  -- /usr/local/include/notcurses/notcurses.h:2464
-      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:2465
-      transcolor : aliased Unsigned_32;  -- /usr/local/include/notcurses/notcurses.h:2466
+      n : access ncplane;  -- /usr/local/include/notcurses/notcurses.h:2662
+      scaling : aliased ncscale_e;  -- /usr/local/include/notcurses/notcurses.h:2666
+      y : aliased int;  -- /usr/local/include/notcurses/notcurses.h:2672
+      x : aliased int;  -- /usr/local/include/notcurses/notcurses.h:2672
+      begy : aliased int;  -- /usr/local/include/notcurses/notcurses.h:2677
+      begx : aliased int;  -- /usr/local/include/notcurses/notcurses.h:2677
+      leny : aliased int;  -- /usr/local/include/notcurses/notcurses.h:2678
+      lenx : aliased int;  -- /usr/local/include/notcurses/notcurses.h:2678
+      blitter : aliased ncblitter_e;  -- /usr/local/include/notcurses/notcurses.h:2682
+      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:2683
+      transcolor : aliased Unsigned_32;  -- /usr/local/include/notcurses/notcurses.h:2684
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:2439
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:2657
 
    function ncplane_as_rgba
      (n : access constant ncplane;
@@ -2363,7 +2567,7 @@ package Notcurses_Thin is
       leny : int;
       lenx : int;
       pxdimy : access int;
-      pxdimx : access int) return access Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2475
+      pxdimx : access int) return access Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2693
    with Import => True,
         Convention => C,
         External_Name => "ncplane_as_rgba";
@@ -2376,27 +2580,27 @@ package Notcurses_Thin is
       x : access int;
       scaley : access int;
       scalex : access int;
-      blitter : access ncblitter_e) return int  -- /usr/local/include/notcurses/notcurses.h:2487
+      blitter : access ncblitter_e) return int  -- /usr/local/include/notcurses/notcurses.h:2705
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_blitter_geom";
 
-   procedure ncvisual_destroy (ncv : access ncvisual)  -- /usr/local/include/notcurses/notcurses.h:2494
+   procedure ncvisual_destroy (ncv : access ncvisual)  -- /usr/local/include/notcurses/notcurses.h:2712
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_destroy";
 
-   function ncvisual_decode (nc : access ncvisual) return int  -- /usr/local/include/notcurses/notcurses.h:2498
+   function ncvisual_decode (nc : access ncvisual) return int  -- /usr/local/include/notcurses/notcurses.h:2716
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_decode";
 
-   function ncvisual_decode_loop (nc : access ncvisual) return int  -- /usr/local/include/notcurses/notcurses.h:2505
+   function ncvisual_decode_loop (nc : access ncvisual) return int  -- /usr/local/include/notcurses/notcurses.h:2723
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_decode_loop";
 
-   function ncvisual_rotate (n : access ncvisual; rads : double) return int  -- /usr/local/include/notcurses/notcurses.h:2510
+   function ncvisual_rotate (n : access ncvisual; rads : double) return int  -- /usr/local/include/notcurses/notcurses.h:2728
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_rotate";
@@ -2404,21 +2608,24 @@ package Notcurses_Thin is
    function ncvisual_resize
      (n : access ncvisual;
       rows : int;
-      cols : int) return int  -- /usr/local/include/notcurses/notcurses.h:2515
+      cols : int) return int  -- /usr/local/include/notcurses/notcurses.h:2733
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_resize";
 
-   function ncvisual_inflate (n : access ncvisual; scale : int) return int  -- /usr/local/include/notcurses/notcurses.h:2520
+   function ncvisual_resize_noninterpolative
+     (n : access ncvisual;
+      rows : int;
+      cols : int) return int  -- /usr/local/include/notcurses/notcurses.h:2738
    with Import => True,
         Convention => C,
-        External_Name => "ncvisual_inflate";
+        External_Name => "ncvisual_resize_noninterpolative";
 
    function ncvisual_polyfill_yx
      (n : access ncvisual;
       y : int;
       x : int;
-      rgba : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:2524
+      rgba : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:2742
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_polyfill_yx";
@@ -2427,7 +2634,7 @@ package Notcurses_Thin is
      (n : access constant ncvisual;
       y : int;
       x : int;
-      pixel : access Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:2528
+      pixel : access Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:2746
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_at_yx";
@@ -2436,7 +2643,7 @@ package Notcurses_Thin is
      (n : access constant ncvisual;
       y : int;
       x : int;
-      pixel : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:2532
+      pixel : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:2750
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_set_yx";
@@ -2444,7 +2651,7 @@ package Notcurses_Thin is
    function ncvisual_render
      (nc : access notcurses;
       ncv : access ncvisual;
-      vopts : access constant ncvisual_options) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:2541
+      vopts : access constant ncvisual_options) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:2759
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_render";
@@ -2453,17 +2660,17 @@ package Notcurses_Thin is
      (n : access ncplane;
       opts : access constant ncplane_options;
       ncv : access ncvisual;
-      vopts : access ncvisual_options) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:2546
+      vopts : access ncvisual_options) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:2764
    with Import => True,
         Convention => C,
         External_Name => "ncvisualplane_create";
 
-   function ncvisual_subtitle (ncv : access constant ncvisual) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:2570
+   function ncvisual_subtitle_plane (parent : access ncplane; ncv : access constant ncvisual) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:2789
    with Import => True,
         Convention => C,
-        External_Name => "ncvisual_subtitle";
+        External_Name => "ncvisual_subtitle_plane";
 
-   function ncvisual_media_defblitter (nc : access constant notcurses; scale : ncscale_e) return ncblitter_e  -- /usr/local/include/notcurses/notcurses.h:2581
+   function ncvisual_media_defblitter (nc : access constant notcurses; scale : ncscale_e) return ncblitter_e  -- /usr/local/include/notcurses/notcurses.h:2801
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_media_defblitter";
@@ -2473,13 +2680,13 @@ package Notcurses_Thin is
          arg2 : access ncvisual_options;
          arg3 : access constant System.OS_Interface.timespec;
          arg4 : System.Address) return int
-   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:2586
+   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:2806
 
    function ncvisual_simple_streamer
      (ncv : access ncvisual;
       vopts : access ncvisual_options;
       tspec : access constant System.OS_Interface.timespec;
-      curry : System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:2592
+      curry : System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:2812
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_simple_streamer";
@@ -2490,7 +2697,7 @@ package Notcurses_Thin is
       timescale : float;
       streamer : ncstreamcb;
       vopts : access constant ncvisual_options;
-      curry : System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:2604
+      curry : System.Address) return int  -- /usr/local/include/notcurses/notcurses.h:2824
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_stream";
@@ -2498,7 +2705,7 @@ package Notcurses_Thin is
    function ncblit_rgba
      (data : System.Address;
       linesize : int;
-      vopts : access constant ncvisual_options) return int  -- /usr/local/include/notcurses/notcurses.h:2615
+      vopts : access constant ncvisual_options) return int  -- /usr/local/include/notcurses/notcurses.h:2835
    with Import => True,
         Convention => C,
         External_Name => "ncblit_rgba";
@@ -2506,7 +2713,7 @@ package Notcurses_Thin is
    function ncblit_bgrx
      (data : System.Address;
       linesize : int;
-      vopts : access constant ncvisual_options) return int  -- /usr/local/include/notcurses/notcurses.h:2619
+      vopts : access constant ncvisual_options) return int  -- /usr/local/include/notcurses/notcurses.h:2839
    with Import => True,
         Convention => C,
         External_Name => "ncblit_bgrx";
@@ -2515,7 +2722,7 @@ package Notcurses_Thin is
      (data : System.Address;
       linesize : int;
       vopts : access constant ncvisual_options;
-      alpha : int) return int  -- /usr/local/include/notcurses/notcurses.h:2624
+      alpha : int) return int  -- /usr/local/include/notcurses/notcurses.h:2843
    with Import => True,
         Convention => C,
         External_Name => "ncblit_rgb_packed";
@@ -2524,47 +2731,47 @@ package Notcurses_Thin is
      (data : System.Address;
       linesize : int;
       vopts : access constant ncvisual_options;
-      alpha : int) return int  -- /usr/local/include/notcurses/notcurses.h:2629
+      alpha : int) return int  -- /usr/local/include/notcurses/notcurses.h:2848
    with Import => True,
         Convention => C,
         External_Name => "ncblit_rgb_loose";
 
-   function ncpixel_a (pixel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:2644
+   function ncpixel_a (pixel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:2863
    with Import => True,
         Convention => C,
         External_Name => "ncpixel_a";
 
-   function ncpixel_r (pixel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:2650
+   function ncpixel_r (pixel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:2869
    with Import => True,
         Convention => C,
         External_Name => "ncpixel_r";
 
-   function ncpixel_g (pixel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:2656
+   function ncpixel_g (pixel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:2875
    with Import => True,
         Convention => C,
         External_Name => "ncpixel_g";
 
-   function ncpixel_b (pixel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:2662
+   function ncpixel_b (pixel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:2881
    with Import => True,
         Convention => C,
         External_Name => "ncpixel_b";
 
-   function ncpixel_set_a (pixel : access Unsigned_32; a : int) return int  -- /usr/local/include/notcurses/notcurses.h:2668
+   function ncpixel_set_a (pixel : access Unsigned_32; a : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2887
    with Import => True,
         Convention => C,
         External_Name => "ncpixel_set_a";
 
-   function ncpixel_set_r (pixel : access Unsigned_32; r : int) return int  -- /usr/local/include/notcurses/notcurses.h:2678
+   function ncpixel_set_r (pixel : access Unsigned_32; r : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2897
    with Import => True,
         Convention => C,
         External_Name => "ncpixel_set_r";
 
-   function ncpixel_set_g (pixel : access Unsigned_32; g : int) return int  -- /usr/local/include/notcurses/notcurses.h:2688
+   function ncpixel_set_g (pixel : access Unsigned_32; g : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2907
    with Import => True,
         Convention => C,
         External_Name => "ncpixel_set_g";
 
-   function ncpixel_set_b (pixel : access Unsigned_32; b : int) return int  -- /usr/local/include/notcurses/notcurses.h:2698
+   function ncpixel_set_b (pixel : access Unsigned_32; b : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2917
    with Import => True,
         Convention => C,
         External_Name => "ncpixel_set_b";
@@ -2572,99 +2779,99 @@ package Notcurses_Thin is
    function ncpixel
      (r : int;
       g : int;
-      b : int) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2708
+      b : int) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:2927
    with Import => True,
         Convention => C,
         External_Name => "ncpixel";
 
    function ncpixel_set_rgb8
      (pixel : access Unsigned_32;
-      r : int;
-      g : int;
-      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:2725
+      r : unsigned;
+      g : unsigned;
+      b : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2944
    with Import => True,
         Convention => C,
         External_Name => "ncpixel_set_rgb8";
 
    type ncreel_options is record
-      bordermask : aliased unsigned;  -- /usr/local/include/notcurses/notcurses.h:2758
-      borderchan : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:2759
-      tabletmask : aliased unsigned;  -- /usr/local/include/notcurses/notcurses.h:2760
-      tabletchan : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:2761
-      focusedchan : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:2762
-      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:2763
+      bordermask : aliased unsigned;  -- /usr/local/include/notcurses/notcurses.h:2977
+      borderchan : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:2978
+      tabletmask : aliased unsigned;  -- /usr/local/include/notcurses/notcurses.h:2979
+      tabletchan : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:2980
+      focusedchan : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:2981
+      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:2982
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:2751
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:2970
 
-   function ncreel_create (n : access ncplane; popts : access constant ncreel_options) return access ncreel  -- /usr/local/include/notcurses/notcurses.h:2768
+   function ncreel_create (n : access ncplane; popts : access constant ncreel_options) return access ncreel  -- /usr/local/include/notcurses/notcurses.h:2987
    with Import => True,
         Convention => C,
         External_Name => "ncreel_create";
 
-   function ncreel_plane (nr : access ncreel) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:2772
+   function ncreel_plane (nr : access ncreel) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:2991
    with Import => True,
         Convention => C,
         External_Name => "ncreel_plane";
 
    type tabletcb is access function (arg1 : access nctablet; arg2 : Extensions.bool) return int
-   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:2779
+   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:2998
 
    function ncreel_add
      (nr : access ncreel;
       after : access nctablet;
       before : access nctablet;
       cb : tabletcb;
-      opaque : System.Address) return access nctablet  -- /usr/local/include/notcurses/notcurses.h:2788
+      opaque : System.Address) return access nctablet  -- /usr/local/include/notcurses/notcurses.h:3007
    with Import => True,
         Convention => C,
         External_Name => "ncreel_add";
 
-   function ncreel_tabletcount (nr : access constant ncreel) return int  -- /usr/local/include/notcurses/notcurses.h:2794
+   function ncreel_tabletcount (nr : access constant ncreel) return int  -- /usr/local/include/notcurses/notcurses.h:3013
    with Import => True,
         Convention => C,
         External_Name => "ncreel_tabletcount";
 
-   function ncreel_del (nr : access ncreel; t : access nctablet) return int  -- /usr/local/include/notcurses/notcurses.h:2799
+   function ncreel_del (nr : access ncreel; t : access nctablet) return int  -- /usr/local/include/notcurses/notcurses.h:3018
    with Import => True,
         Convention => C,
         External_Name => "ncreel_del";
 
-   function ncreel_redraw (nr : access ncreel) return int  -- /usr/local/include/notcurses/notcurses.h:2805
+   function ncreel_redraw (nr : access ncreel) return int  -- /usr/local/include/notcurses/notcurses.h:3024
    with Import => True,
         Convention => C,
         External_Name => "ncreel_redraw";
 
-   function ncreel_offer_input (nr : access ncreel; ni : access constant ncinput) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:2814
+   function ncreel_offer_input (nr : access ncreel; ni : access constant ncinput) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3033
    with Import => True,
         Convention => C,
         External_Name => "ncreel_offer_input";
 
-   function ncreel_focused (nr : access ncreel) return access nctablet  -- /usr/local/include/notcurses/notcurses.h:2819
+   function ncreel_focused (nr : access ncreel) return access nctablet  -- /usr/local/include/notcurses/notcurses.h:3038
    with Import => True,
         Convention => C,
         External_Name => "ncreel_focused";
 
-   function ncreel_next (nr : access ncreel) return access nctablet  -- /usr/local/include/notcurses/notcurses.h:2823
+   function ncreel_next (nr : access ncreel) return access nctablet  -- /usr/local/include/notcurses/notcurses.h:3042
    with Import => True,
         Convention => C,
         External_Name => "ncreel_next";
 
-   function ncreel_prev (nr : access ncreel) return access nctablet  -- /usr/local/include/notcurses/notcurses.h:2827
+   function ncreel_prev (nr : access ncreel) return access nctablet  -- /usr/local/include/notcurses/notcurses.h:3046
    with Import => True,
         Convention => C,
         External_Name => "ncreel_prev";
 
-   procedure ncreel_destroy (nr : access ncreel)  -- /usr/local/include/notcurses/notcurses.h:2831
+   procedure ncreel_destroy (nr : access ncreel)  -- /usr/local/include/notcurses/notcurses.h:3050
    with Import => True,
         Convention => C,
         External_Name => "ncreel_destroy";
 
-   function nctablet_userptr (t : access nctablet) return System.Address  -- /usr/local/include/notcurses/notcurses.h:2834
+   function nctablet_userptr (t : access nctablet) return System.Address  -- /usr/local/include/notcurses/notcurses.h:3053
    with Import => True,
         Convention => C,
         External_Name => "nctablet_userptr";
 
-   function nctablet_plane (t : access nctablet) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:2837
+   function nctablet_plane (t : access nctablet) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3056
    with Import => True,
         Convention => C,
         External_Name => "nctablet_plane";
@@ -2675,7 +2882,7 @@ package Notcurses_Thin is
       buf : Interfaces.C.Strings.chars_ptr;
       omitdec : int;
       mult : Unsigned_Max;
-      uprefix : int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:2860
+      uprefix : int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3079
    with Import => True,
         Convention => C,
         External_Name => "ncmetric";
@@ -2684,7 +2891,7 @@ package Notcurses_Thin is
      (val : Unsigned_Max;
       decimal : Unsigned_Max;
       buf : Interfaces.C.Strings.chars_ptr;
-      omitdec : int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:2887
+      omitdec : int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3106
    with Import => True,
         Convention => C,
         External_Name => "qprefix";
@@ -2693,7 +2900,7 @@ package Notcurses_Thin is
      (val : Unsigned_Max;
       decimal : Unsigned_Max;
       buf : Interfaces.C.Strings.chars_ptr;
-      omitdec : int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:2893
+      omitdec : int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3112
    with Import => True,
         Convention => C,
         External_Name => "iprefix";
@@ -2702,7 +2909,7 @@ package Notcurses_Thin is
      (val : Unsigned_Max;
       decimal : Unsigned_Max;
       buf : Interfaces.C.Strings.chars_ptr;
-      omitdec : int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:2899
+      omitdec : int) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3118
    with Import => True,
         Convention => C,
         External_Name => "bprefix";
@@ -2710,162 +2917,121 @@ package Notcurses_Thin is
    function notcurses_cursor_enable
      (nc : access notcurses;
       y : int;
-      x : int) return int  -- /usr/local/include/notcurses/notcurses.h:2906
+      x : int) return int  -- /usr/local/include/notcurses/notcurses.h:3126
    with Import => True,
         Convention => C,
         External_Name => "notcurses_cursor_enable";
 
-   function notcurses_cursor_disable (nc : access notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:2907
+   function notcurses_cursor_yx
+     (nc : access notcurses;
+      y : access int;
+      x : access int) return int  -- /usr/local/include/notcurses/notcurses.h:3129
+   with Import => True,
+        Convention => C,
+        External_Name => "notcurses_cursor_yx";
+
+   function notcurses_cursor_disable (nc : access notcurses) return int  -- /usr/local/include/notcurses/notcurses.h:3133
    with Import => True,
         Convention => C,
         External_Name => "notcurses_cursor_disable";
 
-   type anon2548_array2550 is array (0 .. 255) of aliased Unsigned_32;
-   type ncpalette is record
-      chans : aliased anon2548_array2550;  -- /usr/local/include/notcurses/notcurses.h:2915
-   end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:2914
-
-   function ncpalette_new (nc : access notcurses) return access ncpalette  -- /usr/local/include/notcurses/notcurses.h:2921
-   with Import => True,
-        Convention => C,
-        External_Name => "ncpalette_new";
-
-   function ncpalette_use (nc : access notcurses; p : access constant ncpalette) return int  -- /usr/local/include/notcurses/notcurses.h:2925
-   with Import => True,
-        Convention => C,
-        External_Name => "ncpalette_use";
-
-   function ncpalette_set_rgb8
-     (p : access ncpalette;
-      idx : int;
-      r : int;
-      g : int;
-      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:2929
-   with Import => True,
-        Convention => C,
-        External_Name => "ncpalette_set_rgb8";
-
-   function ncpalette_set
-     (p : access ncpalette;
-      idx : int;
-      rgb : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2937
-   with Import => True,
-        Convention => C,
-        External_Name => "ncpalette_set";
-
-   function ncpalette_get_rgb8
-     (p : access constant ncpalette;
-      idx : int;
-      r : access unsigned;
-      g : access unsigned;
-      b : access unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:2945
-   with Import => True,
-        Convention => C,
-        External_Name => "ncpalette_get_rgb8";
-
-   procedure ncpalette_free (p : access ncpalette)  -- /usr/local/include/notcurses/notcurses.h:2953
-   with Import => True,
-        Convention => C,
-        External_Name => "ncpalette_free";
-
-   procedure ncplane_greyscale (n : access ncplane)  -- /usr/local/include/notcurses/notcurses.h:2956
+   procedure ncplane_greyscale (n : access ncplane)  -- /usr/local/include/notcurses/notcurses.h:3136
    with Import => True,
         Convention => C,
         External_Name => "ncplane_greyscale";
 
    type ncselector_item is record
-      option : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:2976
-      desc : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:2977
-      opcolumns : aliased Interfaces.C.size_t;  -- /usr/local/include/notcurses/notcurses.h:2978
-      desccolumns : aliased Interfaces.C.size_t;  -- /usr/local/include/notcurses/notcurses.h:2979
+      option : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3156
+      desc : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3157
+      opcolumns : aliased Interfaces.C.size_t;  -- /usr/local/include/notcurses/notcurses.h:3158
+      desccolumns : aliased Interfaces.C.size_t;  -- /usr/local/include/notcurses/notcurses.h:3159
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:2975
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3155
 
    type ncselector_options is record
-      title : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:2983
-      secondary : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:2984
-      footer : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:2985
-      items : access ncselector_item;  -- /usr/local/include/notcurses/notcurses.h:2986
-      defidx : aliased unsigned;  -- /usr/local/include/notcurses/notcurses.h:2989
-      maxdisplay : aliased unsigned;  -- /usr/local/include/notcurses/notcurses.h:2991
-      opchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:2993
-      descchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:2994
-      titlechannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:2995
-      footchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:2996
-      boxchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:2997
-      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:2998
+      title : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3163
+      secondary : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3164
+      footer : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3165
+      items : access ncselector_item;  -- /usr/local/include/notcurses/notcurses.h:3166
+      defidx : aliased unsigned;  -- /usr/local/include/notcurses/notcurses.h:3169
+      maxdisplay : aliased unsigned;  -- /usr/local/include/notcurses/notcurses.h:3171
+      opchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3173
+      descchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3174
+      titlechannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3175
+      footchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3176
+      boxchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3177
+      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3178
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:2982
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3162
 
-   function ncselector_create (n : access ncplane; opts : access constant ncselector_options) return access ncselector  -- /usr/local/include/notcurses/notcurses.h:3001
+   function ncselector_create (n : access ncplane; opts : access constant ncselector_options) return access ncselector  -- /usr/local/include/notcurses/notcurses.h:3181
    with Import => True,
         Convention => C,
         External_Name => "ncselector_create";
 
-   function ncselector_additem (n : access ncselector; item : access constant ncselector_item) return int  -- /usr/local/include/notcurses/notcurses.h:3006
+   function ncselector_additem (n : access ncselector; item : access constant ncselector_item) return int  -- /usr/local/include/notcurses/notcurses.h:3186
    with Import => True,
         Convention => C,
         External_Name => "ncselector_additem";
 
-   function ncselector_delitem (n : access ncselector; item : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:3007
+   function ncselector_delitem (n : access ncselector; item : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:3187
    with Import => True,
         Convention => C,
         External_Name => "ncselector_delitem";
 
-   function ncselector_selected (n : access constant ncselector) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3010
+   function ncselector_selected (n : access constant ncselector) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3190
    with Import => True,
         Convention => C,
         External_Name => "ncselector_selected";
 
-   function ncselector_plane (n : access ncselector) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3013
+   function ncselector_plane (n : access ncselector) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3193
    with Import => True,
         Convention => C,
         External_Name => "ncselector_plane";
 
-   function ncselector_previtem (n : access ncselector) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3017
+   function ncselector_previtem (n : access ncselector) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3197
    with Import => True,
         Convention => C,
         External_Name => "ncselector_previtem";
 
-   function ncselector_nextitem (n : access ncselector) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3018
+   function ncselector_nextitem (n : access ncselector) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3198
    with Import => True,
         Convention => C,
         External_Name => "ncselector_nextitem";
 
-   function ncselector_offer_input (n : access ncselector; nc : access constant ncinput) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3027
+   function ncselector_offer_input (n : access ncselector; nc : access constant ncinput) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3207
    with Import => True,
         Convention => C,
         External_Name => "ncselector_offer_input";
 
-   procedure ncselector_destroy (n : access ncselector; item : System.Address)  -- /usr/local/include/notcurses/notcurses.h:3032
+   procedure ncselector_destroy (n : access ncselector; item : System.Address)  -- /usr/local/include/notcurses/notcurses.h:3212
    with Import => True,
         Convention => C,
         External_Name => "ncselector_destroy";
 
    type ncmselector_item is record
-      option : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3035
-      desc : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3036
-      selected : aliased Extensions.bool;  -- /usr/local/include/notcurses/notcurses.h:3037
+      option : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3215
+      desc : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3216
+      selected : aliased Extensions.bool;  -- /usr/local/include/notcurses/notcurses.h:3217
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3034
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3214
 
    type ncmultiselector_options is record
-      title : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3062
-      secondary : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3063
-      footer : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3064
-      items : access ncmselector_item;  -- /usr/local/include/notcurses/notcurses.h:3065
-      maxdisplay : aliased unsigned;  -- /usr/local/include/notcurses/notcurses.h:3067
-      opchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3069
-      descchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3070
-      titlechannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3071
-      footchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3072
-      boxchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3073
-      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3074
+      title : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3242
+      secondary : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3243
+      footer : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3244
+      items : access ncmselector_item;  -- /usr/local/include/notcurses/notcurses.h:3245
+      maxdisplay : aliased unsigned;  -- /usr/local/include/notcurses/notcurses.h:3247
+      opchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3249
+      descchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3250
+      titlechannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3251
+      footchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3252
+      boxchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3253
+      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3254
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3061
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3241
 
-   function ncmultiselector_create (n : access ncplane; opts : access constant ncmultiselector_options) return access ncmultiselector  -- /usr/local/include/notcurses/notcurses.h:3077
+   function ncmultiselector_create (n : access ncplane; opts : access constant ncmultiselector_options) return access ncmultiselector  -- /usr/local/include/notcurses/notcurses.h:3257
    with Import => True,
         Convention => C,
         External_Name => "ncmultiselector_create";
@@ -2873,79 +3039,79 @@ package Notcurses_Thin is
    function ncmultiselector_selected
      (n : access ncmultiselector;
       selected : access Extensions.bool;
-      count : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:3082
+      count : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:3262
    with Import => True,
         Convention => C,
         External_Name => "ncmultiselector_selected";
 
-   function ncmultiselector_plane (n : access ncmultiselector) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3085
+   function ncmultiselector_plane (n : access ncmultiselector) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3265
    with Import => True,
         Convention => C,
         External_Name => "ncmultiselector_plane";
 
-   function ncmultiselector_offer_input (n : access ncmultiselector; nc : access constant ncinput) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3094
+   function ncmultiselector_offer_input (n : access ncmultiselector; nc : access constant ncinput) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3274
    with Import => True,
         Convention => C,
         External_Name => "ncmultiselector_offer_input";
 
-   procedure ncmultiselector_destroy (n : access ncmultiselector)  -- /usr/local/include/notcurses/notcurses.h:3098
+   procedure ncmultiselector_destroy (n : access ncmultiselector)  -- /usr/local/include/notcurses/notcurses.h:3278
    with Import => True,
         Convention => C,
         External_Name => "ncmultiselector_destroy";
 
    type nctree_item;
    type nctree_item is record
-      curry : System.Address;  -- /usr/local/include/notcurses/notcurses.h:3109
-      subs : access nctree_item;  -- /usr/local/include/notcurses/notcurses.h:3110
-      subcount : aliased unsigned;  -- /usr/local/include/notcurses/notcurses.h:3111
+      curry : System.Address;  -- /usr/local/include/notcurses/notcurses.h:3289
+      subs : access nctree_item;  -- /usr/local/include/notcurses/notcurses.h:3290
+      subcount : aliased unsigned;  -- /usr/local/include/notcurses/notcurses.h:3291
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3108
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3288
 
    type nctree_options is record
-      items : access constant nctree_item;  -- /usr/local/include/notcurses/notcurses.h:3115
-      count : aliased unsigned;  -- /usr/local/include/notcurses/notcurses.h:3116
+      items : access constant nctree_item;  -- /usr/local/include/notcurses/notcurses.h:3295
+      count : aliased unsigned;  -- /usr/local/include/notcurses/notcurses.h:3296
       nctreecb : access function
            (arg1 : access ncplane;
             arg2 : System.Address;
-            arg3 : int) return int;  -- /usr/local/include/notcurses/notcurses.h:3117
-      indentcols : aliased int;  -- /usr/local/include/notcurses/notcurses.h:3118
-      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3119
+            arg3 : int) return int;  -- /usr/local/include/notcurses/notcurses.h:3297
+      indentcols : aliased int;  -- /usr/local/include/notcurses/notcurses.h:3298
+      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3299
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3114
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3294
 
    type nctree is null record;   -- incomplete struct
 
-   function nctree_create (n : access ncplane; opts : access constant nctree_options) return access nctree  -- /usr/local/include/notcurses/notcurses.h:3124
+   function nctree_create (n : access ncplane; opts : access constant nctree_options) return access nctree  -- /usr/local/include/notcurses/notcurses.h:3304
    with Import => True,
         Convention => C,
         External_Name => "nctree_create";
 
-   function nctree_plane (n : access nctree) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3128
+   function nctree_plane (n : access nctree) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3308
    with Import => True,
         Convention => C,
         External_Name => "nctree_plane";
 
-   function nctree_redraw (n : access nctree) return int  -- /usr/local/include/notcurses/notcurses.h:3134
+   function nctree_redraw (n : access nctree) return int  -- /usr/local/include/notcurses/notcurses.h:3314
    with Import => True,
         Convention => C,
         External_Name => "nctree_redraw";
 
-   function nctree_offer_input (n : access nctree; ni : access constant ncinput) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3143
+   function nctree_offer_input (n : access nctree; ni : access constant ncinput) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3323
    with Import => True,
         Convention => C,
         External_Name => "nctree_offer_input";
 
-   function nctree_focused (n : access nctree) return System.Address  -- /usr/local/include/notcurses/notcurses.h:3148
+   function nctree_focused (n : access nctree) return System.Address  -- /usr/local/include/notcurses/notcurses.h:3328
    with Import => True,
         Convention => C,
         External_Name => "nctree_focused";
 
-   function nctree_next (n : access nctree) return System.Address  -- /usr/local/include/notcurses/notcurses.h:3151
+   function nctree_next (n : access nctree) return System.Address  -- /usr/local/include/notcurses/notcurses.h:3331
    with Import => True,
         Convention => C,
         External_Name => "nctree_next";
 
-   function nctree_prev (n : access nctree) return System.Address  -- /usr/local/include/notcurses/notcurses.h:3154
+   function nctree_prev (n : access nctree) return System.Address  -- /usr/local/include/notcurses/notcurses.h:3334
    with Import => True,
         Convention => C,
         External_Name => "nctree_prev";
@@ -2953,72 +3119,72 @@ package Notcurses_Thin is
    function nctree_goto
      (n : access nctree;
       spec : access unsigned;
-      failspec : access int) return System.Address  -- /usr/local/include/notcurses/notcurses.h:3161
+      failspec : access int) return System.Address  -- /usr/local/include/notcurses/notcurses.h:3341
    with Import => True,
         Convention => C,
         External_Name => "nctree_goto";
 
-   procedure nctree_destroy (n : access nctree)  -- /usr/local/include/notcurses/notcurses.h:3164
+   procedure nctree_destroy (n : access nctree)  -- /usr/local/include/notcurses/notcurses.h:3344
    with Import => True,
         Convention => C,
         External_Name => "nctree_destroy";
 
    type ncmenu_item is record
-      desc : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3172
-      shortcut : aliased ncinput;  -- /usr/local/include/notcurses/notcurses.h:3173
+      desc : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3352
+      shortcut : aliased ncinput;  -- /usr/local/include/notcurses/notcurses.h:3353
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3171
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3351
 
    type ncmenu_section is record
-      name : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3177
-      itemcount : aliased int;  -- /usr/local/include/notcurses/notcurses.h:3178
-      items : access ncmenu_item;  -- /usr/local/include/notcurses/notcurses.h:3179
-      shortcut : aliased ncinput;  -- /usr/local/include/notcurses/notcurses.h:3180
+      name : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3357
+      itemcount : aliased int;  -- /usr/local/include/notcurses/notcurses.h:3358
+      items : access ncmenu_item;  -- /usr/local/include/notcurses/notcurses.h:3359
+      shortcut : aliased ncinput;  -- /usr/local/include/notcurses/notcurses.h:3360
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3176
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3356
 
    type ncmenu_options is record
-      sections : access ncmenu_section;  -- /usr/local/include/notcurses/notcurses.h:3187
-      sectioncount : aliased int;  -- /usr/local/include/notcurses/notcurses.h:3188
-      headerchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3189
-      sectionchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3190
-      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3191
+      sections : access ncmenu_section;  -- /usr/local/include/notcurses/notcurses.h:3367
+      sectioncount : aliased int;  -- /usr/local/include/notcurses/notcurses.h:3368
+      headerchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3369
+      sectionchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3370
+      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3371
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3186
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3366
 
    type ncmenu is null record;   -- incomplete struct
 
-   function ncmenu_create (n : access ncplane; opts : access constant ncmenu_options) return access ncmenu  -- /usr/local/include/notcurses/notcurses.h:3197
+   function ncmenu_create (n : access ncplane; opts : access constant ncmenu_options) return access ncmenu  -- /usr/local/include/notcurses/notcurses.h:3375
    with Import => True,
         Convention => C,
         External_Name => "ncmenu_create";
 
-   function ncmenu_unroll (n : access ncmenu; sectionidx : int) return int  -- /usr/local/include/notcurses/notcurses.h:3202
+   function ncmenu_unroll (n : access ncmenu; sectionidx : int) return int  -- /usr/local/include/notcurses/notcurses.h:3380
    with Import => True,
         Convention => C,
         External_Name => "ncmenu_unroll";
 
-   function ncmenu_rollup (n : access ncmenu) return int  -- /usr/local/include/notcurses/notcurses.h:3205
+   function ncmenu_rollup (n : access ncmenu) return int  -- /usr/local/include/notcurses/notcurses.h:3383
    with Import => True,
         Convention => C,
         External_Name => "ncmenu_rollup";
 
-   function ncmenu_nextsection (n : access ncmenu) return int  -- /usr/local/include/notcurses/notcurses.h:3209
+   function ncmenu_nextsection (n : access ncmenu) return int  -- /usr/local/include/notcurses/notcurses.h:3387
    with Import => True,
         Convention => C,
         External_Name => "ncmenu_nextsection";
 
-   function ncmenu_prevsection (n : access ncmenu) return int  -- /usr/local/include/notcurses/notcurses.h:3210
+   function ncmenu_prevsection (n : access ncmenu) return int  -- /usr/local/include/notcurses/notcurses.h:3388
    with Import => True,
         Convention => C,
         External_Name => "ncmenu_prevsection";
 
-   function ncmenu_nextitem (n : access ncmenu) return int  -- /usr/local/include/notcurses/notcurses.h:3214
+   function ncmenu_nextitem (n : access ncmenu) return int  -- /usr/local/include/notcurses/notcurses.h:3392
    with Import => True,
         Convention => C,
         External_Name => "ncmenu_nextitem";
 
-   function ncmenu_previtem (n : access ncmenu) return int  -- /usr/local/include/notcurses/notcurses.h:3215
+   function ncmenu_previtem (n : access ncmenu) return int  -- /usr/local/include/notcurses/notcurses.h:3393
    with Import => True,
         Convention => C,
         External_Name => "ncmenu_previtem";
@@ -3027,12 +3193,12 @@ package Notcurses_Thin is
      (n : access ncmenu;
       section : Interfaces.C.Strings.chars_ptr;
       item : Interfaces.C.Strings.chars_ptr;
-      enabled : Extensions.bool) return int  -- /usr/local/include/notcurses/notcurses.h:3218
+      enabled : Extensions.bool) return int  -- /usr/local/include/notcurses/notcurses.h:3396
    with Import => True,
         Convention => C,
         External_Name => "ncmenu_item_set_status";
 
-   function ncmenu_selected (n : access constant ncmenu; ni : access ncinput) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3224
+   function ncmenu_selected (n : access constant ncmenu; ni : access ncinput) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3402
    with Import => True,
         Convention => C,
         External_Name => "ncmenu_selected";
@@ -3040,146 +3206,146 @@ package Notcurses_Thin is
    function ncmenu_mouse_selected
      (n : access constant ncmenu;
       click : access constant ncinput;
-      ni : access ncinput) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3230
+      ni : access ncinput) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3408
    with Import => True,
         Convention => C,
         External_Name => "ncmenu_mouse_selected";
 
-   function ncmenu_plane (n : access ncmenu) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3234
+   function ncmenu_plane (n : access ncmenu) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3412
    with Import => True,
         Convention => C,
         External_Name => "ncmenu_plane";
 
-   function ncmenu_offer_input (n : access ncmenu; nc : access constant ncinput) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3245
+   function ncmenu_offer_input (n : access ncmenu; nc : access constant ncinput) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3423
    with Import => True,
         Convention => C,
         External_Name => "ncmenu_offer_input";
 
-   function ncmenu_destroy (n : access ncmenu) return int  -- /usr/local/include/notcurses/notcurses.h:3249
+   function ncmenu_destroy (n : access ncmenu) return int  -- /usr/local/include/notcurses/notcurses.h:3427
    with Import => True,
         Convention => C,
         External_Name => "ncmenu_destroy";
 
    type ncprogbar_options is record
-      ulchannel : aliased Unsigned_32;  -- /usr/local/include/notcurses/notcurses.h:3264
-      urchannel : aliased Unsigned_32;  -- /usr/local/include/notcurses/notcurses.h:3265
-      blchannel : aliased Unsigned_32;  -- /usr/local/include/notcurses/notcurses.h:3266
-      brchannel : aliased Unsigned_32;  -- /usr/local/include/notcurses/notcurses.h:3267
-      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3268
+      ulchannel : aliased Unsigned_32;  -- /usr/local/include/notcurses/notcurses.h:3442
+      urchannel : aliased Unsigned_32;  -- /usr/local/include/notcurses/notcurses.h:3443
+      blchannel : aliased Unsigned_32;  -- /usr/local/include/notcurses/notcurses.h:3444
+      brchannel : aliased Unsigned_32;  -- /usr/local/include/notcurses/notcurses.h:3445
+      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3446
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3263
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3441
 
-   function ncprogbar_create (n : access ncplane; opts : access constant ncprogbar_options) return access ncprogbar  -- /usr/local/include/notcurses/notcurses.h:3273
+   function ncprogbar_create (n : access ncplane; opts : access constant ncprogbar_options) return access ncprogbar  -- /usr/local/include/notcurses/notcurses.h:3451
    with Import => True,
         Convention => C,
         External_Name => "ncprogbar_create";
 
-   function ncprogbar_plane (n : access ncprogbar) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3277
+   function ncprogbar_plane (n : access ncprogbar) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3455
    with Import => True,
         Convention => C,
         External_Name => "ncprogbar_plane";
 
-   function ncprogbar_set_progress (n : access ncprogbar; p : double) return int  -- /usr/local/include/notcurses/notcurses.h:3281
+   function ncprogbar_set_progress (n : access ncprogbar; p : double) return int  -- /usr/local/include/notcurses/notcurses.h:3459
    with Import => True,
         Convention => C,
         External_Name => "ncprogbar_set_progress";
 
-   function ncprogbar_progress (n : access constant ncprogbar) return double  -- /usr/local/include/notcurses/notcurses.h:3285
+   function ncprogbar_progress (n : access constant ncprogbar) return double  -- /usr/local/include/notcurses/notcurses.h:3463
    with Import => True,
         Convention => C,
         External_Name => "ncprogbar_progress";
 
-   procedure ncprogbar_destroy (n : access ncprogbar)  -- /usr/local/include/notcurses/notcurses.h:3289
+   procedure ncprogbar_destroy (n : access ncprogbar)  -- /usr/local/include/notcurses/notcurses.h:3467
    with Import => True,
         Convention => C,
         External_Name => "ncprogbar_destroy";
 
    type nctabbed_options is record
-      selchan : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3298
-      hdrchan : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3299
-      sepchan : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3300
-      separator : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3301
-      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3302
+      selchan : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3476
+      hdrchan : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3477
+      sepchan : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3478
+      separator : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3479
+      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3480
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3297
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3475
 
    type tabcb is access procedure
         (arg1 : access nctab;
          arg2 : access ncplane;
          arg3 : System.Address)
-   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:3308
+   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:3486
 
-   function nctabbed_create (n : access ncplane; opts : access constant nctabbed_options) return access nctabbed  -- /usr/local/include/notcurses/notcurses.h:3315
+   function nctabbed_create (n : access ncplane; opts : access constant nctabbed_options) return access nctabbed  -- /usr/local/include/notcurses/notcurses.h:3493
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_create";
 
-   procedure nctabbed_destroy (nt : access nctabbed)  -- /usr/local/include/notcurses/notcurses.h:3321
+   procedure nctabbed_destroy (nt : access nctabbed)  -- /usr/local/include/notcurses/notcurses.h:3499
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_destroy";
 
-   procedure nctabbed_redraw (nt : access nctabbed)  -- /usr/local/include/notcurses/notcurses.h:3326
+   procedure nctabbed_redraw (nt : access nctabbed)  -- /usr/local/include/notcurses/notcurses.h:3504
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_redraw";
 
-   procedure nctabbed_ensure_selected_header_visible (nt : access nctabbed)  -- /usr/local/include/notcurses/notcurses.h:3332
+   procedure nctabbed_ensure_selected_header_visible (nt : access nctabbed)  -- /usr/local/include/notcurses/notcurses.h:3510
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_ensure_selected_header_visible";
 
-   function nctabbed_selected (nt : access nctabbed) return access nctab  -- /usr/local/include/notcurses/notcurses.h:3336
+   function nctabbed_selected (nt : access nctabbed) return access nctab  -- /usr/local/include/notcurses/notcurses.h:3514
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_selected";
 
-   function nctabbed_leftmost (nt : access nctabbed) return access nctab  -- /usr/local/include/notcurses/notcurses.h:3340
+   function nctabbed_leftmost (nt : access nctabbed) return access nctab  -- /usr/local/include/notcurses/notcurses.h:3518
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_leftmost";
 
-   function nctabbed_tabcount (nt : access nctabbed) return int  -- /usr/local/include/notcurses/notcurses.h:3344
+   function nctabbed_tabcount (nt : access nctabbed) return int  -- /usr/local/include/notcurses/notcurses.h:3522
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_tabcount";
 
-   function nctabbed_plane (nt : access nctabbed) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3348
+   function nctabbed_plane (nt : access nctabbed) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3526
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_plane";
 
-   function nctabbed_content_plane (nt : access nctabbed) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3352
+   function nctabbed_content_plane (nt : access nctabbed) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3530
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_content_plane";
 
-   function nctab_cb (t : access nctab) return tabcb  -- /usr/local/include/notcurses/notcurses.h:3356
+   function nctab_cb (t : access nctab) return tabcb  -- /usr/local/include/notcurses/notcurses.h:3534
    with Import => True,
         Convention => C,
         External_Name => "nctab_cb";
 
-   function nctab_name (t : access nctab) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3360
+   function nctab_name (t : access nctab) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3538
    with Import => True,
         Convention => C,
         External_Name => "nctab_name";
 
-   function nctab_name_width (t : access nctab) return int  -- /usr/local/include/notcurses/notcurses.h:3364
+   function nctab_name_width (t : access nctab) return int  -- /usr/local/include/notcurses/notcurses.h:3542
    with Import => True,
         Convention => C,
         External_Name => "nctab_name_width";
 
-   function nctab_userptr (t : access nctab) return System.Address  -- /usr/local/include/notcurses/notcurses.h:3368
+   function nctab_userptr (t : access nctab) return System.Address  -- /usr/local/include/notcurses/notcurses.h:3546
    with Import => True,
         Convention => C,
         External_Name => "nctab_userptr";
 
-   function nctab_next (t : access nctab) return access nctab  -- /usr/local/include/notcurses/notcurses.h:3372
+   function nctab_next (t : access nctab) return access nctab  -- /usr/local/include/notcurses/notcurses.h:3550
    with Import => True,
         Convention => C,
         External_Name => "nctab_next";
 
-   function nctab_prev (t : access nctab) return access nctab  -- /usr/local/include/notcurses/notcurses.h:3376
+   function nctab_prev (t : access nctab) return access nctab  -- /usr/local/include/notcurses/notcurses.h:3554
    with Import => True,
         Convention => C,
         External_Name => "nctab_prev";
@@ -3190,12 +3356,12 @@ package Notcurses_Thin is
       before : access nctab;
       tcb : tabcb;
       name : Interfaces.C.Strings.chars_ptr;
-      opaque : System.Address) return access nctab  -- /usr/local/include/notcurses/notcurses.h:3388
+      opaque : System.Address) return access nctab  -- /usr/local/include/notcurses/notcurses.h:3566
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_add";
 
-   function nctabbed_del (nt : access nctabbed; t : access nctab) return int  -- /usr/local/include/notcurses/notcurses.h:3398
+   function nctabbed_del (nt : access nctabbed; t : access nctab) return int  -- /usr/local/include/notcurses/notcurses.h:3576
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_del";
@@ -3204,37 +3370,37 @@ package Notcurses_Thin is
      (nt : access nctabbed;
       t : access nctab;
       after : access nctab;
-      before : access nctab) return int  -- /usr/local/include/notcurses/notcurses.h:3404
+      before : access nctab) return int  -- /usr/local/include/notcurses/notcurses.h:3582
    with Import => True,
         Convention => C,
         External_Name => "nctab_move";
 
-   procedure nctab_move_right (nt : access nctabbed; t : access nctab)  -- /usr/local/include/notcurses/notcurses.h:3409
+   procedure nctab_move_right (nt : access nctabbed; t : access nctab)  -- /usr/local/include/notcurses/notcurses.h:3587
    with Import => True,
         Convention => C,
         External_Name => "nctab_move_right";
 
-   procedure nctab_move_left (nt : access nctabbed; t : access nctab)  -- /usr/local/include/notcurses/notcurses.h:3413
+   procedure nctab_move_left (nt : access nctabbed; t : access nctab)  -- /usr/local/include/notcurses/notcurses.h:3591
    with Import => True,
         Convention => C,
         External_Name => "nctab_move_left";
 
-   procedure nctabbed_rotate (nt : access nctabbed; amt : int)  -- /usr/local/include/notcurses/notcurses.h:3419
+   procedure nctabbed_rotate (nt : access nctabbed; amt : int)  -- /usr/local/include/notcurses/notcurses.h:3597
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_rotate";
 
-   function nctabbed_next (nt : access nctabbed) return access nctab  -- /usr/local/include/notcurses/notcurses.h:3424
+   function nctabbed_next (nt : access nctabbed) return access nctab  -- /usr/local/include/notcurses/notcurses.h:3602
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_next";
 
-   function nctabbed_prev (nt : access nctabbed) return access nctab  -- /usr/local/include/notcurses/notcurses.h:3429
+   function nctabbed_prev (nt : access nctabbed) return access nctab  -- /usr/local/include/notcurses/notcurses.h:3607
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_prev";
 
-   function nctabbed_select (nt : access nctabbed; t : access nctab) return access nctab  -- /usr/local/include/notcurses/notcurses.h:3433
+   function nctabbed_select (nt : access nctabbed; t : access nctab) return access nctab  -- /usr/local/include/notcurses/notcurses.h:3611
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_select";
@@ -3243,87 +3409,87 @@ package Notcurses_Thin is
      (nt : access nctabbed;
       hdrchan : access Unsigned_64;
       selchan : access Unsigned_64;
-      sepchan : access Unsigned_64)  -- /usr/local/include/notcurses/notcurses.h:3438
+      sepchan : access Unsigned_64)  -- /usr/local/include/notcurses/notcurses.h:3616
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_channels";
 
-   function nctabbed_hdrchan (nt : access nctabbed) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:3443
+   function nctabbed_hdrchan (nt : access nctabbed) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:3621
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_hdrchan";
 
-   function nctabbed_selchan (nt : access nctabbed) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:3450
+   function nctabbed_selchan (nt : access nctabbed) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:3628
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_selchan";
 
-   function nctabbed_sepchan (nt : access nctabbed) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:3457
+   function nctabbed_sepchan (nt : access nctabbed) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:3635
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_sepchan";
 
-   function nctabbed_separator (nt : access nctabbed) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3466
+   function nctabbed_separator (nt : access nctabbed) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3644
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_separator";
 
-   function nctabbed_separator_width (nt : access nctabbed) return int  -- /usr/local/include/notcurses/notcurses.h:3470
+   function nctabbed_separator_width (nt : access nctabbed) return int  -- /usr/local/include/notcurses/notcurses.h:3648
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_separator_width";
 
-   procedure nctabbed_set_hdrchan (nt : access nctabbed; chan : Unsigned_64)  -- /usr/local/include/notcurses/notcurses.h:3474
+   procedure nctabbed_set_hdrchan (nt : access nctabbed; chan : Unsigned_64)  -- /usr/local/include/notcurses/notcurses.h:3652
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_set_hdrchan";
 
-   procedure nctabbed_set_selchan (nt : access nctabbed; chan : Unsigned_64)  -- /usr/local/include/notcurses/notcurses.h:3478
+   procedure nctabbed_set_selchan (nt : access nctabbed; chan : Unsigned_64)  -- /usr/local/include/notcurses/notcurses.h:3656
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_set_selchan";
 
-   procedure nctabbed_set_sepchan (nt : access nctabbed; chan : Unsigned_64)  -- /usr/local/include/notcurses/notcurses.h:3482
+   procedure nctabbed_set_sepchan (nt : access nctabbed; chan : Unsigned_64)  -- /usr/local/include/notcurses/notcurses.h:3660
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_set_sepchan";
 
-   function nctab_set_cb (t : access nctab; newcb : tabcb) return tabcb  -- /usr/local/include/notcurses/notcurses.h:3486
+   function nctab_set_cb (t : access nctab; newcb : tabcb) return tabcb  -- /usr/local/include/notcurses/notcurses.h:3664
    with Import => True,
         Convention => C,
         External_Name => "nctab_set_cb";
 
-   function nctab_set_name (t : access nctab; newname : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:3490
+   function nctab_set_name (t : access nctab; newname : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:3668
    with Import => True,
         Convention => C,
         External_Name => "nctab_set_name";
 
-   function nctab_set_userptr (t : access nctab; newopaque : System.Address) return System.Address  -- /usr/local/include/notcurses/notcurses.h:3494
+   function nctab_set_userptr (t : access nctab; newopaque : System.Address) return System.Address  -- /usr/local/include/notcurses/notcurses.h:3672
    with Import => True,
         Convention => C,
         External_Name => "nctab_set_userptr";
 
-   function nctabbed_set_separator (nt : access nctabbed; separator : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:3499
+   function nctabbed_set_separator (nt : access nctabbed; separator : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:3677
    with Import => True,
         Convention => C,
         External_Name => "nctabbed_set_separator";
 
    type ncplot_options is record
-      maxchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3548
-      minchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3549
-      legendstyle : aliased Unsigned_16;  -- /usr/local/include/notcurses/notcurses.h:3551
-      gridtype : aliased ncblitter_e;  -- /usr/local/include/notcurses/notcurses.h:3554
-      rangex : aliased int;  -- /usr/local/include/notcurses/notcurses.h:3559
-      title : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3560
-      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3561
+      maxchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3726
+      minchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3727
+      legendstyle : aliased Unsigned_16;  -- /usr/local/include/notcurses/notcurses.h:3729
+      gridtype : aliased ncblitter_e;  -- /usr/local/include/notcurses/notcurses.h:3732
+      rangex : aliased int;  -- /usr/local/include/notcurses/notcurses.h:3737
+      title : Interfaces.C.Strings.chars_ptr;  -- /usr/local/include/notcurses/notcurses.h:3738
+      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3739
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3545
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3723
 
    function ncuplot_create
      (n : access ncplane;
       opts : access constant ncplot_options;
       miny : Unsigned_64;
-      maxy : Unsigned_64) return access ncuplot  -- /usr/local/include/notcurses/notcurses.h:3568
+      maxy : Unsigned_64) return access ncuplot  -- /usr/local/include/notcurses/notcurses.h:3746
    with Import => True,
         Convention => C,
         External_Name => "ncuplot_create";
@@ -3332,17 +3498,17 @@ package Notcurses_Thin is
      (n : access ncplane;
       opts : access constant ncplot_options;
       miny : double;
-      maxy : double) return access ncdplot  -- /usr/local/include/notcurses/notcurses.h:3572
+      maxy : double) return access ncdplot  -- /usr/local/include/notcurses/notcurses.h:3750
    with Import => True,
         Convention => C,
         External_Name => "ncdplot_create";
 
-   function ncuplot_plane (n : access ncuplot) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3577
+   function ncuplot_plane (n : access ncuplot) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3755
    with Import => True,
         Convention => C,
         External_Name => "ncuplot_plane";
 
-   function ncdplot_plane (n : access ncdplot) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3580
+   function ncdplot_plane (n : access ncdplot) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3758
    with Import => True,
         Convention => C,
         External_Name => "ncdplot_plane";
@@ -3350,7 +3516,7 @@ package Notcurses_Thin is
    function ncuplot_add_sample
      (n : access ncuplot;
       x : Unsigned_64;
-      y : Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:3587
+      y : Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:3765
    with Import => True,
         Convention => C,
         External_Name => "ncuplot_add_sample";
@@ -3358,7 +3524,7 @@ package Notcurses_Thin is
    function ncdplot_add_sample
      (n : access ncdplot;
       x : Unsigned_64;
-      y : double) return int  -- /usr/local/include/notcurses/notcurses.h:3589
+      y : double) return int  -- /usr/local/include/notcurses/notcurses.h:3767
    with Import => True,
         Convention => C,
         External_Name => "ncdplot_add_sample";
@@ -3366,7 +3532,7 @@ package Notcurses_Thin is
    function ncuplot_set_sample
      (n : access ncuplot;
       x : Unsigned_64;
-      y : Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:3591
+      y : Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:3769
    with Import => True,
         Convention => C,
         External_Name => "ncuplot_set_sample";
@@ -3374,7 +3540,7 @@ package Notcurses_Thin is
    function ncdplot_set_sample
      (n : access ncdplot;
       x : Unsigned_64;
-      y : double) return int  -- /usr/local/include/notcurses/notcurses.h:3593
+      y : double) return int  -- /usr/local/include/notcurses/notcurses.h:3771
    with Import => True,
         Convention => C,
         External_Name => "ncdplot_set_sample";
@@ -3382,7 +3548,7 @@ package Notcurses_Thin is
    function ncuplot_sample
      (n : access constant ncuplot;
       x : Unsigned_64;
-      y : access Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:3596
+      y : access Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:3774
    with Import => True,
         Convention => C,
         External_Name => "ncuplot_sample";
@@ -3390,17 +3556,17 @@ package Notcurses_Thin is
    function ncdplot_sample
      (n : access constant ncdplot;
       x : Unsigned_64;
-      y : access double) return int  -- /usr/local/include/notcurses/notcurses.h:3598
+      y : access double) return int  -- /usr/local/include/notcurses/notcurses.h:3776
    with Import => True,
         Convention => C,
         External_Name => "ncdplot_sample";
 
-   procedure ncuplot_destroy (n : access ncuplot)  -- /usr/local/include/notcurses/notcurses.h:3601
+   procedure ncuplot_destroy (n : access ncuplot)  -- /usr/local/include/notcurses/notcurses.h:3779
    with Import => True,
         Convention => C,
         External_Name => "ncuplot_destroy";
 
-   procedure ncdplot_destroy (n : access ncdplot)  -- /usr/local/include/notcurses/notcurses.h:3602
+   procedure ncdplot_destroy (n : access ncdplot)  -- /usr/local/include/notcurses/notcurses.h:3780
    with Import => True,
         Convention => C,
         External_Name => "ncdplot_destroy";
@@ -3410,47 +3576,47 @@ package Notcurses_Thin is
          arg2 : System.Address;
          arg3 : Interfaces.C.size_t;
          arg4 : System.Address) return int
-   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:3604
+   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:3782
 
    type ncfdplane_done_cb is access function
         (arg1 : access ncfdplane;
          arg2 : int;
          arg3 : System.Address) return int
-   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:3605
+   with Convention => C;  -- /usr/local/include/notcurses/notcurses.h:3783
 
    type ncfdplane_options is record
-      curry : System.Address;  -- /usr/local/include/notcurses/notcurses.h:3613
-      follow : aliased Extensions.bool;  -- /usr/local/include/notcurses/notcurses.h:3614
-      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3615
+      curry : System.Address;  -- /usr/local/include/notcurses/notcurses.h:3791
+      follow : aliased Extensions.bool;  -- /usr/local/include/notcurses/notcurses.h:3792
+      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3793
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3612
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3790
 
    function ncfdplane_create
      (n : access ncplane;
       opts : access constant ncfdplane_options;
       fd : int;
       cbfxn : ncfdplane_callback;
-      donecbfxn : ncfdplane_done_cb) return access ncfdplane  -- /usr/local/include/notcurses/notcurses.h:3620
+      donecbfxn : ncfdplane_done_cb) return access ncfdplane  -- /usr/local/include/notcurses/notcurses.h:3798
    with Import => True,
         Convention => C,
         External_Name => "ncfdplane_create";
 
-   function ncfdplane_plane (n : access ncfdplane) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3624
+   function ncfdplane_plane (n : access ncfdplane) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3802
    with Import => True,
         Convention => C,
         External_Name => "ncfdplane_plane";
 
-   function ncfdplane_destroy (n : access ncfdplane) return int  -- /usr/local/include/notcurses/notcurses.h:3627
+   function ncfdplane_destroy (n : access ncfdplane) return int  -- /usr/local/include/notcurses/notcurses.h:3805
    with Import => True,
         Convention => C,
         External_Name => "ncfdplane_destroy";
 
    type ncsubproc_options is record
-      curry : System.Address;  -- /usr/local/include/notcurses/notcurses.h:3630
-      restart_period : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3631
-      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3632
+      curry : System.Address;  -- /usr/local/include/notcurses/notcurses.h:3808
+      restart_period : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3809
+      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3810
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3629
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3807
 
    function ncsubproc_createv
      (n : access ncplane;
@@ -3458,7 +3624,7 @@ package Notcurses_Thin is
       bin : Interfaces.C.Strings.chars_ptr;
       arg : System.Address;
       cbfxn : ncfdplane_callback;
-      donecbfxn : ncfdplane_done_cb) return access ncsubproc  -- /usr/local/include/notcurses/notcurses.h:3636
+      donecbfxn : ncfdplane_done_cb) return access ncsubproc  -- /usr/local/include/notcurses/notcurses.h:3814
    with Import => True,
         Convention => C,
         External_Name => "ncsubproc_createv";
@@ -3469,7 +3635,7 @@ package Notcurses_Thin is
       bin : Interfaces.C.Strings.chars_ptr;
       arg : System.Address;
       cbfxn : ncfdplane_callback;
-      donecbfxn : ncfdplane_done_cb) return access ncsubproc  -- /usr/local/include/notcurses/notcurses.h:3641
+      donecbfxn : ncfdplane_done_cb) return access ncsubproc  -- /usr/local/include/notcurses/notcurses.h:3819
    with Import => True,
         Convention => C,
         External_Name => "ncsubproc_createvp";
@@ -3481,17 +3647,17 @@ package Notcurses_Thin is
       arg : System.Address;
       env : System.Address;
       cbfxn : ncfdplane_callback;
-      donecbfxn : ncfdplane_done_cb) return access ncsubproc  -- /usr/local/include/notcurses/notcurses.h:3646
+      donecbfxn : ncfdplane_done_cb) return access ncsubproc  -- /usr/local/include/notcurses/notcurses.h:3824
    with Import => True,
         Convention => C,
         External_Name => "ncsubproc_createvpe";
 
-   function ncsubproc_plane (n : access ncsubproc) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3651
+   function ncsubproc_plane (n : access ncsubproc) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3829
    with Import => True,
         Convention => C,
         External_Name => "ncsubproc_plane";
 
-   function ncsubproc_destroy (n : access ncsubproc) return int  -- /usr/local/include/notcurses/notcurses.h:3654
+   function ncsubproc_destroy (n : access ncsubproc) return int  -- /usr/local/include/notcurses/notcurses.h:3832
    with Import => True,
         Convention => C,
         External_Name => "ncsubproc_destroy";
@@ -3501,84 +3667,87 @@ package Notcurses_Thin is
       ymax : access int;
       xmax : access int;
       data : System.Address;
-      len : Interfaces.C.size_t) return int  -- /usr/local/include/notcurses/notcurses.h:3661
+      len : Interfaces.C.size_t) return int  -- /usr/local/include/notcurses/notcurses.h:3839
    with Import => True,
         Convention => C,
         External_Name => "ncplane_qrcode";
 
    type ncreader_options is record
-      tchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3676
-      tattrword : aliased Unsigned_32;  -- /usr/local/include/notcurses/notcurses.h:3677
-      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3678
+      tchannels : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3854
+      tattrword : aliased Unsigned_32;  -- /usr/local/include/notcurses/notcurses.h:3855
+      flags : aliased Unsigned_64;  -- /usr/local/include/notcurses/notcurses.h:3856
    end record
-   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3675
+   with Convention => C_Pass_By_Copy;  -- /usr/local/include/notcurses/notcurses.h:3853
 
-   function ncreader_create (n : access ncplane; opts : access constant ncreader_options) return access ncreader  -- /usr/local/include/notcurses/notcurses.h:3684
+   function ncreader_create (n : access ncplane; opts : access constant ncreader_options) return access ncreader  -- /usr/local/include/notcurses/notcurses.h:3862
    with Import => True,
         Convention => C,
         External_Name => "ncreader_create";
 
-   function ncreader_clear (n : access ncreader) return int  -- /usr/local/include/notcurses/notcurses.h:3688
+   function ncreader_clear (n : access ncreader) return int  -- /usr/local/include/notcurses/notcurses.h:3866
    with Import => True,
         Convention => C,
         External_Name => "ncreader_clear";
 
-   function ncreader_plane (n : access ncreader) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3691
+   function ncreader_plane (n : access ncreader) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3869
    with Import => True,
         Convention => C,
         External_Name => "ncreader_plane";
 
-   function ncreader_offer_input (n : access ncreader; ni : access constant ncinput) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3697
+   function ncreader_offer_input (n : access ncreader; ni : access constant ncinput) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3875
    with Import => True,
         Convention => C,
         External_Name => "ncreader_offer_input";
 
-   function ncreader_move_left (n : access ncreader) return int  -- /usr/local/include/notcurses/notcurses.h:3702
+   function ncreader_move_left (n : access ncreader) return int  -- /usr/local/include/notcurses/notcurses.h:3880
    with Import => True,
         Convention => C,
         External_Name => "ncreader_move_left";
 
-   function ncreader_move_right (n : access ncreader) return int  -- /usr/local/include/notcurses/notcurses.h:3704
+   function ncreader_move_right (n : access ncreader) return int  -- /usr/local/include/notcurses/notcurses.h:3882
    with Import => True,
         Convention => C,
         External_Name => "ncreader_move_right";
 
-   function ncreader_move_up (n : access ncreader) return int  -- /usr/local/include/notcurses/notcurses.h:3706
+   function ncreader_move_up (n : access ncreader) return int  -- /usr/local/include/notcurses/notcurses.h:3884
    with Import => True,
         Convention => C,
         External_Name => "ncreader_move_up";
 
-   function ncreader_move_down (n : access ncreader) return int  -- /usr/local/include/notcurses/notcurses.h:3708
+   function ncreader_move_down (n : access ncreader) return int  -- /usr/local/include/notcurses/notcurses.h:3886
    with Import => True,
         Convention => C,
         External_Name => "ncreader_move_down";
 
-   function ncreader_write_egc (n : access ncreader; egc : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:3713
+   function ncreader_write_egc (n : access ncreader; egc : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:3891
    with Import => True,
         Convention => C,
         External_Name => "ncreader_write_egc";
 
-   function ncreader_contents (n : access constant ncreader) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3717
+   function ncreader_contents (n : access constant ncreader) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3895
    with Import => True,
         Convention => C,
         External_Name => "ncreader_contents";
 
-   procedure ncreader_destroy (n : access ncreader; contents : System.Address)  -- /usr/local/include/notcurses/notcurses.h:3722
+   procedure ncreader_destroy (n : access ncreader; contents : System.Address)  -- /usr/local/include/notcurses/notcurses.h:3900
    with Import => True,
         Convention => C,
         External_Name => "ncreader_destroy";
 
-   procedure notcurses_debug (nc : access constant notcurses; debugfp : File_Pointer)  -- /usr/local/include/notcurses/notcurses.h:3727
+   procedure notcurses_debug (nc : access constant notcurses; debugfp : Interfaces.C_Streams.FILEs)  -- /usr/local/include/notcurses/notcurses.h:3905
    with Import => True,
         Convention => C,
         External_Name => "notcurses_debug";
 
-   procedure notcurses_debug_caps (nc : access constant notcurses; debugfp : File_Pointer)  -- /usr/local/include/notcurses/notcurses.h:3732
+   function ncplane_align
+     (n : access constant ncplane;
+      align : ncalign_e;
+      c : int) return int  -- /usr/local/include/notcurses/notcurses.h:3911
    with Import => True,
         Convention => C,
-        External_Name => "notcurses_debug_caps";
+        External_Name => "ncplane_align";
 
-   procedure cell_init (c : access nccell)  -- /usr/local/include/notcurses/notcurses.h:3738
+   procedure cell_init (c : access nccell)  -- /usr/local/include/notcurses/notcurses.h:3916
    with Import => True,
         Convention => C,
         External_Name => "cell_init";
@@ -3586,7 +3755,7 @@ package Notcurses_Thin is
    function cell_load
      (n : access ncplane;
       c : access nccell;
-      gcluster : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:3742
+      gcluster : Interfaces.C.Strings.chars_ptr) return int  -- /usr/local/include/notcurses/notcurses.h:3920
    with Import => True,
         Convention => C,
         External_Name => "cell_load";
@@ -3596,7 +3765,7 @@ package Notcurses_Thin is
       c : access nccell;
       gcluster : Interfaces.C.Strings.chars_ptr;
       stylemask : Unsigned_32;
-      channels : Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:3746
+      channels : Unsigned_64) return int  -- /usr/local/include/notcurses/notcurses.h:3924
    with Import => True,
         Convention => C,
         External_Name => "cell_prime";
@@ -3604,82 +3773,82 @@ package Notcurses_Thin is
    function cell_duplicate
      (n : access ncplane;
       targ : access nccell;
-      c : access constant nccell) return int  -- /usr/local/include/notcurses/notcurses.h:3751
+      c : access constant nccell) return int  -- /usr/local/include/notcurses/notcurses.h:3929
    with Import => True,
         Convention => C,
         External_Name => "cell_duplicate";
 
-   procedure cell_release (n : access ncplane; c : access nccell)  -- /usr/local/include/notcurses/notcurses.h:3753
+   procedure cell_release (n : access ncplane; c : access nccell)  -- /usr/local/include/notcurses/notcurses.h:3931
    with Import => True,
         Convention => C,
         External_Name => "cell_release";
 
-   function ncvisual_default_blitter (utf8 : Extensions.bool; scale : ncscale_e) return ncblitter_e  -- /usr/local/include/notcurses/notcurses.h:3758
+   function ncvisual_default_blitter (utf8 : Extensions.bool; scale : ncscale_e) return ncblitter_e  -- /usr/local/include/notcurses/notcurses.h:3936
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_default_blitter";
 
-   procedure cell_set_styles (c : access nccell; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:3773
+   procedure cell_set_styles (c : access nccell; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:3951
    with Import => True,
         Convention => C,
         External_Name => "cell_set_styles";
 
-   function cell_styles (c : access constant nccell) return unsigned  -- /usr/local/include/notcurses/notcurses.h:3779
+   function cell_styles (c : access constant nccell) return unsigned  -- /usr/local/include/notcurses/notcurses.h:3957
    with Import => True,
         Convention => C,
         External_Name => "cell_styles";
 
-   procedure cell_on_styles (c : access nccell; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:3784
+   procedure cell_on_styles (c : access nccell; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:3962
    with Import => True,
         Convention => C,
         External_Name => "cell_on_styles";
 
-   procedure cell_off_styles (c : access nccell; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:3789
+   procedure cell_off_styles (c : access nccell; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:3967
    with Import => True,
         Convention => C,
         External_Name => "cell_off_styles";
 
-   procedure cell_set_fg_default (c : access nccell)  -- /usr/local/include/notcurses/notcurses.h:3794
+   procedure cell_set_fg_default (c : access nccell)  -- /usr/local/include/notcurses/notcurses.h:3972
    with Import => True,
         Convention => C,
         External_Name => "cell_set_fg_default";
 
-   procedure cell_set_bg_default (c : access nccell)  -- /usr/local/include/notcurses/notcurses.h:3799
+   procedure cell_set_bg_default (c : access nccell)  -- /usr/local/include/notcurses/notcurses.h:3977
    with Import => True,
         Convention => C,
         External_Name => "cell_set_bg_default";
 
-   function cell_set_fg_alpha (c : access nccell; alpha : int) return int  -- /usr/local/include/notcurses/notcurses.h:3804
+   function cell_set_fg_alpha (c : access nccell; alpha : int) return int  -- /usr/local/include/notcurses/notcurses.h:3982
    with Import => True,
         Convention => C,
         External_Name => "cell_set_fg_alpha";
 
-   function cell_set_bg_alpha (c : access nccell; alpha : int) return int  -- /usr/local/include/notcurses/notcurses.h:3809
+   function cell_set_bg_alpha (c : access nccell; alpha : int) return int  -- /usr/local/include/notcurses/notcurses.h:3987
    with Import => True,
         Convention => C,
         External_Name => "cell_set_bg_alpha";
 
-   function cell_double_wide_p (c : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3814
+   function cell_double_wide_p (c : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3992
    with Import => True,
         Convention => C,
         External_Name => "cell_double_wide_p";
 
-   function cell_wide_right_p (c : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3819
+   function cell_wide_right_p (c : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3997
    with Import => True,
         Convention => C,
         External_Name => "cell_wide_right_p";
 
-   function cell_wide_left_p (c : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3824
+   function cell_wide_left_p (c : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4002
    with Import => True,
         Convention => C,
         External_Name => "cell_wide_left_p";
 
-   function cell_extended_gcluster (n : access constant ncplane; c : access constant nccell) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3829
+   function cell_extended_gcluster (n : access constant ncplane; c : access constant nccell) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:4007
    with Import => True,
         Convention => C,
         External_Name => "cell_extended_gcluster";
 
-   function cell_strdup (n : access constant ncplane; c : access constant nccell) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3832
+   function cell_strdup (n : access constant ncplane; c : access constant nccell) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:4010
    with Import => True,
         Convention => C,
         External_Name => "cell_strdup";
@@ -3688,7 +3857,7 @@ package Notcurses_Thin is
      (n : access constant ncplane;
       c : access constant nccell;
       stylemask : access Unsigned_16;
-      channels : access Unsigned_64) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:3837
+      channels : access Unsigned_64) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:4015
    with Import => True,
         Convention => C,
         External_Name => "cell_extract";
@@ -3697,7 +3866,7 @@ package Notcurses_Thin is
      (n1 : access constant ncplane;
       c1 : access constant nccell;
       n2 : access constant ncplane;
-      c2 : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3843
+      c2 : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4021
    with Import => True,
         Convention => C,
         External_Name => "cellcmp";
@@ -3705,7 +3874,7 @@ package Notcurses_Thin is
    function cell_load_char
      (n : access ncplane;
       c : access nccell;
-      ch : char) return int  -- /usr/local/include/notcurses/notcurses.h:3849
+      ch : char) return int  -- /usr/local/include/notcurses/notcurses.h:4027
    with Import => True,
         Convention => C,
         External_Name => "cell_load_char";
@@ -3713,7 +3882,7 @@ package Notcurses_Thin is
    function cell_load_egc32
      (n : access ncplane;
       c : access nccell;
-      egc : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:3854
+      egc : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:4032
    with Import => True,
         Convention => C,
         External_Name => "cell_load_egc32";
@@ -3725,27 +3894,27 @@ package Notcurses_Thin is
       y : int;
       x : int;
       opaque : System.Address;
-      name : Interfaces.C.Strings.chars_ptr) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3860
+      name : Interfaces.C.Strings.chars_ptr) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:4038
    with Import => True,
         Convention => C,
         External_Name => "ncplane_new";
 
-   function cell_fg_rgb (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:3864
+   function cell_fg_rgb (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:4042
    with Import => True,
         Convention => C,
         External_Name => "cell_fg_rgb";
 
-   function cell_bg_rgb (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:3869
+   function cell_bg_rgb (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:4047
    with Import => True,
         Convention => C,
         External_Name => "cell_bg_rgb";
 
-   function cell_fg_alpha (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:3874
+   function cell_fg_alpha (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:4052
    with Import => True,
         Convention => C,
         External_Name => "cell_fg_alpha";
 
-   function cell_bg_alpha (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:3879
+   function cell_bg_alpha (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:4057
    with Import => True,
         Convention => C,
         External_Name => "cell_bg_alpha";
@@ -3754,7 +3923,7 @@ package Notcurses_Thin is
      (cl : access constant nccell;
       r : access unsigned;
       g : access unsigned;
-      b : access unsigned) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:3884
+      b : access unsigned) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:4062
    with Import => True,
         Convention => C,
         External_Name => "cell_fg_rgb8";
@@ -3763,7 +3932,7 @@ package Notcurses_Thin is
      (cl : access constant nccell;
       r : access unsigned;
       g : access unsigned;
-      b : access unsigned) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:3890
+      b : access unsigned) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:4068
    with Import => True,
         Convention => C,
         External_Name => "cell_bg_rgb8";
@@ -3772,7 +3941,7 @@ package Notcurses_Thin is
      (cl : access nccell;
       r : int;
       g : int;
-      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:3895
+      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:4073
    with Import => True,
         Convention => C,
         External_Name => "cell_set_fg_rgb8";
@@ -3781,22 +3950,22 @@ package Notcurses_Thin is
      (cl : access nccell;
       r : int;
       g : int;
-      b : int)  -- /usr/local/include/notcurses/notcurses.h:3900
+      b : int)  -- /usr/local/include/notcurses/notcurses.h:4078
    with Import => True,
         Convention => C,
         External_Name => "cell_set_fg_rgb8_clipped";
 
-   function cell_set_fg_rgb (c : access nccell; channel : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:3905
+   function cell_set_fg_rgb (c : access nccell; channel : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:4083
    with Import => True,
         Convention => C,
         External_Name => "cell_set_fg_rgb";
 
-   function cell_set_fg_palindex (cl : access nccell; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:3910
+   function cell_set_fg_palindex (cl : access nccell; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:4088
    with Import => True,
         Convention => C,
         External_Name => "cell_set_fg_palindex";
 
-   function cell_fg_palindex (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:3915
+   function cell_fg_palindex (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:4093
    with Import => True,
         Convention => C,
         External_Name => "cell_fg_palindex";
@@ -3805,7 +3974,7 @@ package Notcurses_Thin is
      (cl : access nccell;
       r : int;
       g : int;
-      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:3920
+      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:4098
    with Import => True,
         Convention => C,
         External_Name => "cell_set_bg_rgb8";
@@ -3814,57 +3983,57 @@ package Notcurses_Thin is
      (cl : access nccell;
       r : int;
       g : int;
-      b : int)  -- /usr/local/include/notcurses/notcurses.h:3925
+      b : int)  -- /usr/local/include/notcurses/notcurses.h:4103
    with Import => True,
         Convention => C,
         External_Name => "cell_set_bg_rgb8_clipped";
 
-   function cell_set_bg_rgb (c : access nccell; channel : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:3930
+   function cell_set_bg_rgb (c : access nccell; channel : Unsigned_32) return int  -- /usr/local/include/notcurses/notcurses.h:4108
    with Import => True,
         Convention => C,
         External_Name => "cell_set_bg_rgb";
 
-   function cell_set_bg_palindex (cl : access nccell; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:3935
+   function cell_set_bg_palindex (cl : access nccell; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:4113
    with Import => True,
         Convention => C,
         External_Name => "cell_set_bg_palindex";
 
-   function cell_bg_palindex (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:3940
+   function cell_bg_palindex (cl : access constant nccell) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:4118
    with Import => True,
         Convention => C,
         External_Name => "cell_bg_palindex";
 
-   function cell_fg_default_p (cl : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3945
+   function cell_fg_default_p (cl : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4123
    with Import => True,
         Convention => C,
         External_Name => "cell_fg_default_p";
 
-   function cell_fg_palindex_p (cl : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3950
+   function cell_fg_palindex_p (cl : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4128
    with Import => True,
         Convention => C,
         External_Name => "cell_fg_palindex_p";
 
-   function cell_bg_default_p (cl : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3955
+   function cell_bg_default_p (cl : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4133
    with Import => True,
         Convention => C,
         External_Name => "cell_bg_default_p";
 
-   function cell_bg_palindex_p (cl : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:3960
+   function cell_bg_palindex_p (cl : access constant nccell) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4138
    with Import => True,
         Convention => C,
         External_Name => "cell_bg_palindex_p";
 
-   procedure ncplane_styles_set (n : access ncplane; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:3964
+   procedure ncplane_styles_set (n : access ncplane; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:4142
    with Import => True,
         Convention => C,
         External_Name => "ncplane_styles_set";
 
-   procedure ncplane_styles_on (n : access ncplane; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:3966
+   procedure ncplane_styles_on (n : access ncplane; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:4144
    with Import => True,
         Convention => C,
         External_Name => "ncplane_styles_on";
 
-   procedure ncplane_styles_off (n : access ncplane; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:3968
+   procedure ncplane_styles_off (n : access ncplane; stylebits : unsigned)  -- /usr/local/include/notcurses/notcurses.h:4146
    with Import => True,
         Convention => C,
         External_Name => "ncplane_styles_off";
@@ -3878,7 +4047,7 @@ package Notcurses_Thin is
       ll : access nccell;
       lr : access nccell;
       hl : access nccell;
-      vl : access nccell) return int  -- /usr/local/include/notcurses/notcurses.h:3972
+      vl : access nccell) return int  -- /usr/local/include/notcurses/notcurses.h:4150
    with Import => True,
         Convention => C,
         External_Name => "cells_rounded_box";
@@ -3892,7 +4061,7 @@ package Notcurses_Thin is
       ll : access nccell;
       lr : access nccell;
       hl : access nccell;
-      vl : access nccell) return int  -- /usr/local/include/notcurses/notcurses.h:3977
+      vl : access nccell) return int  -- /usr/local/include/notcurses/notcurses.h:4155
    with Import => True,
         Convention => C,
         External_Name => "cells_double_box";
@@ -3903,7 +4072,7 @@ package Notcurses_Thin is
       begy : int;
       begx : int;
       leny : int;
-      lenx : int) return access Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:3984
+      lenx : int) return access Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:4162
    with Import => True,
         Convention => C,
         External_Name => "ncplane_rgba";
@@ -3915,22 +4084,22 @@ package Notcurses_Thin is
       y : access int;
       x : access int;
       scaley : access int;
-      scalex : access int) return int  -- /usr/local/include/notcurses/notcurses.h:3990
+      scalex : access int) return int  -- /usr/local/include/notcurses/notcurses.h:4168
    with Import => True,
         Convention => C,
         External_Name => "ncvisual_geom";
 
-   function nctablet_ncplane (t : access nctablet) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:3997
+   function nctablet_ncplane (t : access nctablet) return access ncplane  -- /usr/local/include/notcurses/notcurses.h:4175
    with Import => True,
         Convention => C,
         External_Name => "nctablet_ncplane";
 
-   function palette256_new (nc : access notcurses) return access ncpalette  -- /usr/local/include/notcurses/notcurses.h:4000
+   function palette256_new (nc : access notcurses) return access ncpalette  -- /usr/local/include/notcurses/notcurses.h:4178
    with Import => True,
         Convention => C,
         External_Name => "palette256_new";
 
-   function palette256_use (nc : access notcurses; p : access constant ncpalette) return int  -- /usr/local/include/notcurses/notcurses.h:4003
+   function palette256_use (nc : access notcurses; p : access constant ncpalette) return int  -- /usr/local/include/notcurses/notcurses.h:4181
    with Import => True,
         Convention => C,
         External_Name => "palette256_use";
@@ -3940,7 +4109,7 @@ package Notcurses_Thin is
       idx : int;
       r : int;
       g : int;
-      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:4007
+      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:4185
    with Import => True,
         Convention => C,
         External_Name => "palette256_set_rgb8";
@@ -3948,7 +4117,7 @@ package Notcurses_Thin is
    function palette256_set
      (p : access ncpalette;
       idx : int;
-      rgb : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:4012
+      rgb : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:4190
    with Import => True,
         Convention => C,
         External_Name => "palette256_set";
@@ -3958,27 +4127,27 @@ package Notcurses_Thin is
       idx : int;
       r : access unsigned;
       g : access unsigned;
-      b : access unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:4017
+      b : access unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:4195
    with Import => True,
         Convention => C,
         External_Name => "palette256_get_rgb8";
 
-   procedure palette256_free (p : access ncpalette)  -- /usr/local/include/notcurses/notcurses.h:4021
+   procedure palette256_free (p : access ncpalette)  -- /usr/local/include/notcurses/notcurses.h:4199
    with Import => True,
         Convention => C,
         External_Name => "palette256_free";
 
-   function channel_r (channel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4024
+   function channel_r (channel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4202
    with Import => True,
         Convention => C,
         External_Name => "channel_r";
 
-   function channel_g (channel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4030
+   function channel_g (channel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4208
    with Import => True,
         Convention => C,
         External_Name => "channel_g";
 
-   function channel_b (channel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4036
+   function channel_b (channel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4214
    with Import => True,
         Convention => C,
         External_Name => "channel_b";
@@ -3987,7 +4156,7 @@ package Notcurses_Thin is
      (channel : Unsigned_32;
       r : access unsigned;
       g : access unsigned;
-      b : access unsigned) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4042
+      b : access unsigned) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4220
    with Import => True,
         Convention => C,
         External_Name => "channel_rgb8";
@@ -3996,7 +4165,7 @@ package Notcurses_Thin is
      (channel : access Unsigned_32;
       r : int;
       g : int;
-      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:4050
+      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:4228
    with Import => True,
         Convention => C,
         External_Name => "channel_set_rgb8";
@@ -4005,102 +4174,102 @@ package Notcurses_Thin is
      (channel : access unsigned;
       r : int;
       g : int;
-      b : int)  -- /usr/local/include/notcurses/notcurses.h:4058
+      b : int)  -- /usr/local/include/notcurses/notcurses.h:4236
    with Import => True,
         Convention => C,
         External_Name => "channel_set_rgb8_clipped";
 
-   function channel_set (channel : access unsigned; rgb : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:4064
+   function channel_set (channel : access unsigned; rgb : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:4242
    with Import => True,
         Convention => C,
         External_Name => "channel_set";
 
-   function channel_alpha (channel : unsigned) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4070
+   function channel_alpha (channel : unsigned) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4248
    with Import => True,
         Convention => C,
         External_Name => "channel_alpha";
 
-   function channel_palindex (channel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4075
+   function channel_palindex (channel : Unsigned_32) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4253
    with Import => True,
         Convention => C,
         External_Name => "channel_palindex";
 
-   function channel_set_alpha (channel : access unsigned; alpha : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:4081
+   function channel_set_alpha (channel : access unsigned; alpha : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:4259
    with Import => True,
         Convention => C,
         External_Name => "channel_set_alpha";
 
-   function channel_set_palindex (channel : access Unsigned_32; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:4086
+   function channel_set_palindex (channel : access Unsigned_32; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:4264
    with Import => True,
         Convention => C,
         External_Name => "channel_set_palindex";
 
-   function channel_default_p (channel : unsigned) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4091
+   function channel_default_p (channel : unsigned) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4269
    with Import => True,
         Convention => C,
         External_Name => "channel_default_p";
 
-   function channel_palindex_p (channel : unsigned) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4096
+   function channel_palindex_p (channel : unsigned) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4274
    with Import => True,
         Convention => C,
         External_Name => "channel_palindex_p";
 
-   function channel_set_default (channel : access unsigned) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4101
+   function channel_set_default (channel : access unsigned) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4279
    with Import => True,
         Convention => C,
         External_Name => "channel_set_default";
 
-   function channels_bchannel (channels : Unsigned_64) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:4106
+   function channels_bchannel (channels : Unsigned_64) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:4284
    with Import => True,
         Convention => C,
         External_Name => "channels_bchannel";
 
-   function channels_fchannel (channels : Unsigned_64) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:4111
+   function channels_fchannel (channels : Unsigned_64) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:4289
    with Import => True,
         Convention => C,
         External_Name => "channels_fchannel";
 
-   function channels_set_bchannel (channels : access Unsigned_64; channel : Unsigned_32) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:4116
+   function channels_set_bchannel (channels : access Unsigned_64; channel : Unsigned_32) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:4294
    with Import => True,
         Convention => C,
         External_Name => "channels_set_bchannel";
 
-   function channels_set_fchannel (channels : access Unsigned_64; channel : Unsigned_32) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:4121
+   function channels_set_fchannel (channels : access Unsigned_64; channel : Unsigned_32) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:4299
    with Import => True,
         Convention => C,
         External_Name => "channels_set_fchannel";
 
-   function channels_combine (fchan : Unsigned_32; bchan : Unsigned_32) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:4126
+   function channels_combine (fchan : Unsigned_32; bchan : Unsigned_32) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:4304
    with Import => True,
         Convention => C,
         External_Name => "channels_combine";
 
-   function channels_fg_palindex (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4131
+   function channels_fg_palindex (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4309
    with Import => True,
         Convention => C,
         External_Name => "channels_fg_palindex";
 
-   function channels_bg_palindex (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4136
+   function channels_bg_palindex (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4314
    with Import => True,
         Convention => C,
         External_Name => "channels_bg_palindex";
 
-   function channels_fg_rgb (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4141
+   function channels_fg_rgb (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4319
    with Import => True,
         Convention => C,
         External_Name => "channels_fg_rgb";
 
-   function channels_bg_rgb (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4146
+   function channels_bg_rgb (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4324
    with Import => True,
         Convention => C,
         External_Name => "channels_bg_rgb";
 
-   function channels_fg_alpha (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4151
+   function channels_fg_alpha (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4329
    with Import => True,
         Convention => C,
         External_Name => "channels_fg_alpha";
 
-   function channels_bg_alpha (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4156
+   function channels_bg_alpha (channels : Unsigned_64) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4334
    with Import => True,
         Convention => C,
         External_Name => "channels_bg_alpha";
@@ -4109,7 +4278,7 @@ package Notcurses_Thin is
      (channels : Unsigned_64;
       r : access unsigned;
       g : access unsigned;
-      b : access unsigned) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4161
+      b : access unsigned) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4339
    with Import => True,
         Convention => C,
         External_Name => "channels_fg_rgb8";
@@ -4118,7 +4287,7 @@ package Notcurses_Thin is
      (channels : Unsigned_64;
       r : access unsigned;
       g : access unsigned;
-      b : access unsigned) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4166
+      b : access unsigned) return unsigned  -- /usr/local/include/notcurses/notcurses.h:4344
    with Import => True,
         Convention => C,
         External_Name => "channels_bg_rgb8";
@@ -4127,7 +4296,7 @@ package Notcurses_Thin is
      (channels : access Unsigned_64;
       r : int;
       g : int;
-      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:4171
+      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:4349
    with Import => True,
         Convention => C,
         External_Name => "channels_set_fg_rgb8";
@@ -4136,22 +4305,22 @@ package Notcurses_Thin is
      (channels : access Unsigned_64;
       r : int;
       g : int;
-      b : int)  -- /usr/local/include/notcurses/notcurses.h:4176
+      b : int)  -- /usr/local/include/notcurses/notcurses.h:4354
    with Import => True,
         Convention => C,
         External_Name => "channels_set_fg_rgb8_clipped";
 
-   function channels_set_fg_alpha (channels : access Unsigned_64; alpha : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:4181
+   function channels_set_fg_alpha (channels : access Unsigned_64; alpha : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:4359
    with Import => True,
         Convention => C,
         External_Name => "channels_set_fg_alpha";
 
-   function channels_set_fg_palindex (channels : access Unsigned_64; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:4186
+   function channels_set_fg_palindex (channels : access Unsigned_64; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:4364
    with Import => True,
         Convention => C,
         External_Name => "channels_set_fg_palindex";
 
-   function channels_set_fg_rgb (channels : access Unsigned_64; rgb : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:4191
+   function channels_set_fg_rgb (channels : access Unsigned_64; rgb : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:4369
    with Import => True,
         Convention => C,
         External_Name => "channels_set_fg_rgb";
@@ -4160,7 +4329,7 @@ package Notcurses_Thin is
      (channels : access Unsigned_64;
       r : int;
       g : int;
-      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:4196
+      b : int) return int  -- /usr/local/include/notcurses/notcurses.h:4374
    with Import => True,
         Convention => C,
         External_Name => "channels_set_bg_rgb8";
@@ -4169,58 +4338,98 @@ package Notcurses_Thin is
      (channels : access Unsigned_64;
       r : int;
       g : int;
-      b : int)  -- /usr/local/include/notcurses/notcurses.h:4201
+      b : int)  -- /usr/local/include/notcurses/notcurses.h:4379
    with Import => True,
         Convention => C,
         External_Name => "channels_set_bg_rgb8_clipped";
 
-   function channels_set_bg_alpha (channels : access Unsigned_64; alpha : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:4206
+   function channels_set_bg_alpha (channels : access Unsigned_64; alpha : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:4384
    with Import => True,
         Convention => C,
         External_Name => "channels_set_bg_alpha";
 
-   function channels_set_bg_palindex (channels : access Unsigned_64; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:4211
+   function channels_set_bg_palindex (channels : access Unsigned_64; idx : int) return int  -- /usr/local/include/notcurses/notcurses.h:4389
    with Import => True,
         Convention => C,
         External_Name => "channels_set_bg_palindex";
 
-   function channels_set_bg_rgb (channels : access Unsigned_64; rgb : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:4216
+   function channels_set_bg_rgb (channels : access Unsigned_64; rgb : unsigned) return int  -- /usr/local/include/notcurses/notcurses.h:4394
    with Import => True,
         Convention => C,
         External_Name => "channels_set_bg_rgb";
 
-   function channels_fg_default_p (channels : Unsigned_64) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4221
+   function channels_fg_default_p (channels : Unsigned_64) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4399
    with Import => True,
         Convention => C,
         External_Name => "channels_fg_default_p";
 
-   function channels_fg_palindex_p (channels : Unsigned_64) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4226
+   function channels_fg_palindex_p (channels : Unsigned_64) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4404
    with Import => True,
         Convention => C,
         External_Name => "channels_fg_palindex_p";
 
-   function channels_bg_default_p (channels : Unsigned_64) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4231
+   function channels_bg_default_p (channels : Unsigned_64) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4409
    with Import => True,
         Convention => C,
         External_Name => "channels_bg_default_p";
 
-   function channels_bg_palindex_p (channels : Unsigned_64) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4236
+   function channels_bg_palindex_p (channels : Unsigned_64) return Extensions.bool  -- /usr/local/include/notcurses/notcurses.h:4414
    with Import => True,
         Convention => C,
         External_Name => "channels_bg_palindex_p";
 
-   function channels_set_fg_default (channels : access Unsigned_64) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:4241
+   function channels_set_fg_default (channels : access Unsigned_64) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:4419
    with Import => True,
         Convention => C,
         External_Name => "channels_set_fg_default";
 
-   function channels_set_bg_default (channels : access Unsigned_64) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:4246
+   function channels_set_bg_default (channels : access Unsigned_64) return Unsigned_64  -- /usr/local/include/notcurses/notcurses.h:4424
    with Import => True,
         Convention => C,
         External_Name => "channels_set_bg_default";
 
-   subtype palette256 is ncpalette;  -- /usr/local/include/notcurses/notcurses.h:4250
+   function ncvisual_inflate (n : access ncvisual; scale : int) return int  -- /usr/local/include/notcurses/notcurses.h:4431
+   with Import => True,
+        Convention => C,
+        External_Name => "ncvisual_inflate";
 
-   subtype cell is nccell;  -- /usr/local/include/notcurses/notcurses.h:4252
+   function notcurses_render_to_buffer
+     (nc : access notcurses;
+      buf : System.Address;
+      buflen : access Interfaces.C.size_t) return int  -- /usr/local/include/notcurses/notcurses.h:4434
+   with Import => True,
+        Convention => C,
+        External_Name => "notcurses_render_to_buffer";
+
+   function notcurses_render_to_file (nc : access notcurses; fp : Interfaces.C_Streams.FILEs) return int  -- /usr/local/include/notcurses/notcurses.h:4437
+   with Import => True,
+        Convention => C,
+        External_Name => "notcurses_render_to_file";
+
+   subtype cell is nccell;  -- /usr/local/include/notcurses/notcurses.h:4440
+
+   procedure notcurses_debug_caps (nc : access constant notcurses; debugfp : Interfaces.C_Streams.FILEs)  -- /usr/local/include/notcurses/notcurses.h:4442
+   with Import => True,
+        Convention => C,
+        External_Name => "notcurses_debug_caps";
+
+   function notcurses_getc
+     (n : access notcurses;
+      ts : access constant System.OS_Interface.timespec;
+      unused : System.Address;
+      ni : access ncinput) return Unsigned_32  -- /usr/local/include/notcurses/notcurses.h:4447
+   with Import => True,
+        Convention => C,
+        External_Name => "notcurses_getc";
+
+   function nccell_width (n : access constant ncplane; c : access constant nccell) return int  -- /usr/local/include/notcurses/notcurses.h:4451
+   with Import => True,
+        Convention => C,
+        External_Name => "nccell_width";
+
+   function ncvisual_subtitle (ncv : access constant ncvisual) return Interfaces.C.Strings.chars_ptr  -- /usr/local/include/notcurses/notcurses.h:4453
+   with Import => True,
+        Convention => C,
+        External_Name => "ncvisual_subtitle";
 
 end Notcurses_Thin;

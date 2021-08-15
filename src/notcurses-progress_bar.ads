@@ -1,3 +1,8 @@
+--
+--  Copyright 2021 (C) Jeremy Grosser <jeremy@synack.me>
+--
+--  SPDX-License-Identifier: Apache-2.0
+--
 with Interfaces.C;
 
 package Notcurses.Progress_Bar is

@@ -6,6 +6,7 @@
 with Ada.Unchecked_Conversion;
 with Interfaces;
 with Interfaces.C.Strings;
+with Interfaces.C_Streams;
 with Interfaces.C;
 with Notcurses_Thin;
 
@@ -41,7 +42,7 @@ private
 
    Default_Options : aliased Thin.notcurses_options :=
       (termtype => Interfaces.C.Strings.Null_Ptr,
-       renderfp => Thin.Null_File,
+       renderfp => Interfaces.C_Streams.NULL_Stream,
        loglevel => Thin.NCLOGLEVEL_ERROR,
        flags    => 0,
        others   => 0);

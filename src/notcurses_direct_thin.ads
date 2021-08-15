@@ -8,6 +8,7 @@ pragma Style_Checks (Off);
 
 with Interfaces.C; use Interfaces.C;
 with Interfaces; use Interfaces;
+with Interfaces.C_Streams;
 with Notcurses_Thin;
 with Interfaces.C.Strings;
 with Interfaces.C.Extensions;
@@ -28,7 +29,7 @@ package Notcurses_Direct_Thin is
 
    function ncdirect_init
      (termtype : Interfaces.C.Strings.chars_ptr;
-      fp : Notcurses_Thin.File_Pointer;
+      fp : Interfaces.C_Streams.FILEs;
       flags : Unsigned_64) return access ncdirect  -- /usr/local/include/notcurses/direct.h:41
    with Import => True,
         Convention => C,
@@ -36,7 +37,7 @@ package Notcurses_Direct_Thin is
 
    function ncdirect_core_init
      (termtype : Interfaces.C.Strings.chars_ptr;
-      fp : Notcurses_Thin.File_Pointer;
+      fp : Interfaces.C_Streams.FILEs;
       flags : Unsigned_64) return access ncdirect  -- /usr/local/include/notcurses/direct.h:45
    with Import => True,
         Convention => C,

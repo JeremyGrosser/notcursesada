@@ -7,6 +7,7 @@ with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Characters.Wide_Wide_Latin_1;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
 with Interfaces.C; use Interfaces.C;
+with Interfaces.C_Streams;
 with Interfaces; use Interfaces;
 
 package body Notcurses.Direct is
@@ -18,10 +19,10 @@ package body Notcurses.Direct is
    begin
       if Terminal_Type /= "" then
          Term := New_String (Terminal_Type);
-         This := Direct_Thin.ncdirect_init (Term, Thin.Null_File, 0);
+         This := Direct_Thin.ncdirect_init (Term, Interfaces.C_Streams.NULL_Stream, 0);
          Free (Term);
       else
-         This := Direct_Thin.ncdirect_init (Null_Ptr, Thin.Null_File, 0);
+         This := Direct_Thin.ncdirect_init (Null_Ptr, Interfaces.C_Streams.NULL_Stream, 0);
       end if;
 
       if This = null then

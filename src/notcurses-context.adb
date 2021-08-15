@@ -4,14 +4,14 @@
 --  SPDX-License-Identifier: Apache-2.0
 --
 with Interfaces.C; use Interfaces.C;
-with System.OS_Interface;
+with Interfaces.C_Streams;
 
 package body Notcurses.Context is
 
    procedure Initialize is
    begin
       Default_Context := Notcurses_Context
-         (Thin.notcurses_init (Default_Options'Access, Thin.Null_File));
+         (Thin.notcurses_init (Default_Options'Access, Interfaces.C_Streams.NULL_Stream));
    end Initialize;
 
    procedure Render
@@ -48,16 +48,10 @@ package body Notcurses.Context is
       (Context : Notcurses_Context)
       return Notcurses_Input
    is
-      use System.OS_Interface;
       NI          : aliased Thin.ncinput;
-      Signal_Mask : aliased sigset_t;
       Char        : Wide_Wide_Character with Unreferenced;
    begin
-      if sigemptyset (Signal_Mask'Access) /= 0 then
-         raise Notcurses_Error with "Failed to initialize empty signal mask for getc";
-      end if;
-
-      Char := Thin.notcurses_getc (Context, null, Signal_Mask'Access, NI'Access);
+      Char := Thin.notcurses_get (Context, null, NI'Access);
       return To_Ada (NI);
    end Get;
 
