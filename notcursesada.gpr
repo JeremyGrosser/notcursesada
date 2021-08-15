@@ -14,12 +14,12 @@ library project Notcursesada is
           ("-gnatwa",    -- All warnings
            "-gnatVa",    -- All validity checks
            "-gnatyg",    -- GNAT Style checks
-           "-gnaty-d",   -- Disable no DOS line terminators
            "-gnatyM120", -- Maximum line length
            "-gnatyO",    -- Overriding subprograms explicitly marked as such
            "-gnata",     -- Enable assertions and contracts
            "-gnatn",     -- Enable inlining
            "-gnatW8",    -- Always interpret source files as UTF-8
+           --"-gnatwI",    -- Don't warn about internal GNAT units
            "-gnatQ",     -- Don't quit. Generate ALI and tree files even if illegalities
            "-gnat2020",  -- Ensure we have some modern features
            "-Og",        -- Debug optimization
