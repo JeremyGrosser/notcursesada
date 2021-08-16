@@ -3,8 +3,6 @@
 --
 --  SPDX-License-Identifier: Apache-2.0
 --
-with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
-
 package body Notcurses is
    function Version
       return String

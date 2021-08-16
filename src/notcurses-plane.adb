@@ -111,7 +111,7 @@ package body Notcurses.Plane is
       end if;
    end Put;
 
-   procedure Put
+   procedure Put_Aligned
       (Plane : Notcurses_Plane;
        Str   : Wide_Wide_String;
        Y     : Integer := -1;
@@ -133,7 +133,7 @@ package body Notcurses.Plane is
       if Result < 0 then
          raise Notcurses_Error with "Failed to put Wide_Wide_String on plane";
       end if;
-   end Put;
+   end Put_Aligned;
 
    procedure Set_Background
       (Plane   : Notcurses_Plane;

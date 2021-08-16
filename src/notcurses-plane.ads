@@ -43,7 +43,7 @@ package Notcurses.Plane is
        Str   : Wide_Wide_String;
        Y, X  : Integer := -1);
 
-   procedure Put
+   procedure Put_Aligned
       (Plane : Notcurses_Plane;
        Str   : Wide_Wide_String;
        Y     : Integer := -1;

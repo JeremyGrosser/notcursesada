@@ -206,7 +206,7 @@ package body Tests is
       Put (Left, "Left");
 
       Set_Foreground_RGB (Right, 255, 0, 0);
-      Put (Right, "Right");
+      Put_Aligned (Right, "Right", Align => Notcurses.Plane.Right);
       Notcurses.Context.Render (Notcurses.Plane.Context (Standard_Plane));
       delay 1.0;
 
