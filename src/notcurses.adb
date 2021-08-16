@@ -4,6 +4,16 @@
 --  SPDX-License-Identifier: Apache-2.0
 --
 package body Notcurses is
+   function "+"
+      (Left, Right : Coordinate)
+      return Coordinate
+   is ((Y => Left.Y + Right.Y, X => Left.X + Right.X));
+
+   function "-"
+      (Left, Right : Coordinate)
+      return Coordinate
+   is ((Y => Left.Y - Right.Y, X => Left.X - Right.X));
+
    function Version
       return String
    is

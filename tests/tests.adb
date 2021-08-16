@@ -109,8 +109,8 @@ package body Tests is
 
       Dims  : constant Coordinate := Dimensions (Plane);
    begin
-      for Y in 0 .. Dims.Y loop
-         for X in 0 .. Dims.X loop
+      for Y in 0 .. Dims.Y - 1 loop
+         for X in 0 .. Dims.X - 1 loop
             Set_Foreground_RGB (Plane, Red, Green, Blue);
             Set_Background_RGB (Plane, Blue, Red, Green);
             Put (Plane, "X", Y, X);

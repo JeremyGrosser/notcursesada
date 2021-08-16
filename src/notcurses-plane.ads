@@ -65,4 +65,21 @@ package Notcurses.Plane is
       (Plane   : Notcurses_Plane;
        R, G, B : Color_Type);
 
+   package Cursor is
+      function Position
+         (Plane : Notcurses_Plane)
+         return Coordinate;
+
+      procedure Move
+         (Plane    : Notcurses_Plane;
+          Position : Coordinate);
+
+      procedure Move_Relative
+         (Plane  : Notcurses_Plane;
+          Offset : Coordinate);
+
+      procedure Home
+         (Plane : Notcurses_Plane);
+   end Cursor;
+
 end Notcurses.Plane;

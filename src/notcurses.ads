@@ -28,6 +28,9 @@ package Notcurses is
       Y, X : Integer;
    end record;
 
+   function "+" (Left, Right : Coordinate) return Coordinate;
+   function "-" (Left, Right : Coordinate) return Coordinate;
+
    Notcurses_Error : exception;
 
    function Version

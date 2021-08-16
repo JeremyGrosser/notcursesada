@@ -185,4 +185,41 @@ package body Notcurses.Plane is
       Set_Foreground (Plane, Channel);
    end Set_Foreground_RGB;
 
+   package body Cursor is
+      function Position
+         (Plane : Notcurses_Plane)
+         return Coordinate
+      is
+         Y, X : aliased int;
+      begin
+         Thin.ncplane_cursor_yx (Plane, Y'Access, X'Access);
+         return (Y => Integer (Y), X => Integer (X));
+      end Position;
+
+      procedure Move
+         (Plane    : Notcurses_Plane;
+          Position : Coordinate)
+      is
+      begin
+         if Thin.ncplane_cursor_move_yx (Plane, int (Position.Y), int (Position.X)) = -1 then
+            raise Notcurses_Error with "Failed to move the cursor";
+         end if;
+      end Move;
+
+      procedure Move_Relative
+         (Plane  : Notcurses_Plane;
+          Offset : Coordinate)
+      is
+      begin
+         Move (Plane, Cursor.Position (Plane) + Offset);
+      end Move_Relative;
+
+      procedure Home
+         (Plane : Notcurses_Plane)
+      is
+      begin
+         Thin.ncplane_home (Plane);
+      end Home;
+   end Cursor;
+
 end Notcurses.Plane;
