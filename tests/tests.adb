@@ -109,8 +109,8 @@ package body Tests is
 
       Dims  : constant Coordinate := Dimensions (Plane);
    begin
-      for Y in 0 .. Dims.Y loop
-         for X in 0 .. Dims.X loop
+      for Y in 0 .. Dims.Y - 1 loop
+         for X in 0 .. Dims.X - 1 loop
             Set_Foreground_RGB (Plane, Red, Green, Blue);
             Set_Background_RGB (Plane, Blue, Red, Green);
             Put (Plane, "X", Y, X);
@@ -134,7 +134,6 @@ package body Tests is
       use Notcurses.Context;
       Plane   : constant Notcurses_Plane := Standard_Plane;
       Context : constant Notcurses_Context := Notcurses.Plane.Context (Plane);
-      Dims    : constant Coordinate := Dimensions (Plane);
       Input   : Notcurses_Input;
    begin
       Set_Background_RGB (Plane, R => 0, G => 0, B => 0);
@@ -148,9 +147,7 @@ package body Tests is
 
          Input := Notcurses.Context.Get (Context);
          Set_Foreground_RGB (Plane, R => 255, G => 255, B => 255);
-         Erase_Region (Plane,
-            Start => (X => 2, Y => 2),
-            Size  => (X => Dims.X - 2, Y => Dims.Y - 2));
+         Erase (Plane);
          Put (Plane, "Id:",
             X => 2, Y => 2);
          Put (Plane, Input.Id'Wide_Wide_Image,

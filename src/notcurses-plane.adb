@@ -82,19 +82,6 @@ package body Notcurses.Plane is
       Thin.ncplane_erase (Plane);
    end Erase;
 
-   procedure Erase_Region
-      (Plane : Notcurses_Plane;
-       Start : Coordinate;
-       Size  : Coordinate)
-   is
-      Result : int;
-   begin
-      Result := Thin.ncplane_erase_region (Plane, int (Start.Y), int (Start.X), int (Size.Y), int (Size.X));
-      if Result /= 0 then
-         raise Notcurses_Error with "Failed to erase plane region";
-      end if;
-   end Erase_Region;
-
    procedure Put
       (Plane : Notcurses_Plane;
        Str   : Wide_Wide_String;
