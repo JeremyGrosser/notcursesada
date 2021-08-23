@@ -1,3 +1,5 @@
+with Ada.Unchecked_Conversion;
+
 package Notcurses.Visual is
    type Notcurses_Visual is private;
 
@@ -30,6 +32,7 @@ package Notcurses.Visual is
       Position          : Coordinate := (0, 0);    --  Offset the visual from the origin of Plane (or Standard_Plane if Plane is null)
       Origin            : Coordinate := (0, 0);    --  Mask the visual starting at Origin
       Size              : Coordinate := (0, 0);    --  Size of the Mask, or (0, 0) if no mask should be applied
+      Offset            : Coordinate := (0, 0);    --  pixel offsets within the cell
       Blit              : Blitter := Blit_Default; --  Glyph set to use. Default selects the best available for your terminal
       Flags             : Visual_Flags := (others => False);
       Transparent_Color : Interfaces.Unsigned_32;  --  if Flags.Add_Alpha, treat this color as transparent
@@ -86,12 +89,6 @@ package Notcurses.Visual is
       (Visual   : Notcurses_Visual;
        Position : Coordinate)
        return RGBA;
-
-   procedure Render
-      (Context : Notcurses_Context;
-       Visual  : Notcurses_Visual;
-       Options : Visual_Options;
-       Plane   : out Notcurses_Plane);
 
    function Decode
       (Visual : Notcurses_Visual)

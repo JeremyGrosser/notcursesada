@@ -22,6 +22,8 @@ library project Notcursesada is
            --"-gnatwI",    -- Don't warn about internal GNAT units
            "-gnatQ",     -- Don't quit. Generate ALI and tree files even if illegalities
            "-gnat2020",  -- Ensure we have some modern features
+           "-gnatwI",    -- Suppress "System.OS_Interface" is an internal GNAT unit
+           "-gnatwJ",    -- Suppress array aggregate using () is an obsolescent syntax, use [] instead
            "-Og",        -- Debug optimization
            "-g");        -- Debug info
    end Compiler;

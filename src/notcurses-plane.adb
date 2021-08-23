@@ -3,10 +3,10 @@
 --
 --  SPDX-License-Identifier: Apache-2.0
 --
+with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Interfaces.C; use Interfaces.C;
 with Interfaces.C.Strings; use Interfaces.C.Strings;
 with System;
-with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Notcurses.Context;
 
 package body Notcurses.Plane is
@@ -31,7 +31,7 @@ package body Notcurses.Plane is
       (Plane : Notcurses_Plane)
       return Coordinate
    is
-      Y, X : aliased int;
+      Y, X : aliased unsigned;
    begin
       Thin.ncplane_dim_yx (Plane, Y'Access, X'Access);
       return
@@ -48,8 +48,8 @@ package body Notcurses.Plane is
       Options : aliased constant Thin.ncplane_options :=
          (y        => int (Position.Y),
           x        => int (Position.X),
-          rows     => int (Size.Y),
-          cols     => int (Size.X),
+          rows     => unsigned (Size.Y),
+          cols     => unsigned (Size.X),
           userptr  => System.Null_Address,
           name     => Null_Ptr,
           resizecb => null,
@@ -82,19 +82,6 @@ package body Notcurses.Plane is
       Thin.ncplane_erase (Plane);
    end Erase;
 
-   procedure Erase_Region
-      (Plane : Notcurses_Plane;
-       Start : Coordinate;
-       Size  : Coordinate)
-   is
-      Result : int;
-   begin
-      Result := Thin.ncplane_erase_region (Plane, int (Start.Y), int (Start.X), int (Size.Y), int (Size.X));
-      if Result /= 0 then
-         raise Notcurses_Error with "Failed to erase plane region";
-      end if;
-   end Erase_Region;
-
    procedure Put
       (Plane : Notcurses_Plane;
        Str   : Wide_Wide_String;
@@ -104,8 +91,15 @@ package body Notcurses.Plane is
       Chars  : aliased chars_ptr := New_String (Encode (Str));
       Result : int;
    begin
-      Result := Thin.ncplane_putstr_yx (Plane, int (Y), int (X), Chars);
+      Result := Thin.ncplane_putegc_yx
+         (n       => Plane,
+          y       => int (Y),
+          x       => int (X),
+          gclust  => Chars,
+          sbytes  => null);
+
       Free (Chars);
+
       if Result < 0 then
          raise Notcurses_Error with "Failed to put Wide_Wide_String on plane";
       end if;
@@ -117,9 +111,46 @@ package body Notcurses.Plane is
        Y     : Integer := -1;
        Align : Alignment := Unaligned)
    is
+      function wcswidth
+         (s : chars_ptr;
+          n : size_t)
+          return int
+      with Import, Convention => C;
+
+      function notcurses_align
+         (availu  : int;
+          align   : Thin.ncalign_e;
+          u       : int)
+          return int;
+
+      function notcurses_align
+         (availu  : int;
+          align   : Thin.ncalign_e;
+          u       : int)
+          return int
+      is
+         use type Thin.ncalign_e;
+      begin
+         if align = Thin.NCALIGN_LEFT then
+            return 0;
+         end if;
+
+         if align = Thin.NCALIGN_CENTER then
+            return (availu - u) / 2;
+         end if;
+
+         if align = Thin.NCALIGN_RIGHT then
+            return availu - u;
+         end if;
+
+         return int'First;
+      end notcurses_align;
+
       use Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
       Chars  : aliased chars_ptr := New_String (Encode (Str));
+      Width  : constant int := wcswidth (Chars, size_t (int'Last));
       NCA    : Thin.ncalign_e;
+      X_Pos  : int;
       Result : int;
    begin
       case Align is
@@ -128,11 +159,27 @@ package body Notcurses.Plane is
          when Right     => NCA := Thin.NCALIGN_RIGHT;
          when Center    => NCA := Thin.NCALIGN_CENTER;
       end case;
-      Result := Thin.ncplane_putstr_aligned (Plane, int (Y), NCA, Chars);
-      Free (Chars);
-      if Result < 0 then
-         raise Notcurses_Error with "Failed to put Wide_Wide_String on plane";
+
+      X_Pos := notcurses_align
+         (availu  => int (Dimensions (Plane).X),
+          align   => NCA,
+          u       => Width);
+
+      if X_Pos < 0 then
+         X_Pos := 0;
       end if;
+
+      Result := Thin.ncplane_putegc_yx
+         (n       => Plane,
+          y       => int (Y),
+          x       => X_Pos,
+          gclust  => Chars,
+          sbytes  => null);
+
+      Free (Chars);
+      --  if Result < 0 then
+      --     raise Notcurses_Error with "Failed to put Wide_Wide_String on plane";
+      --  end if;
    end Put_Aligned;
 
    procedure Fill
@@ -186,15 +233,14 @@ package body Notcurses.Plane is
       (Plane   : Notcurses_Plane;
        R, G, B : Color_Type)
    is
-      Channel : constant Notcurses_Channel :=
-         (R           => R,
-          G           => G,
-          B           => B,
-          Not_Default => True,
-          Use_Palette => False,
-          Alpha       => Opaque);
+      Result : Unsigned_64
+         with Unreferenced;
    begin
-      Set_Foreground (Plane, Channel);
+      Result := Thin.ncplane_set_fchannel (Plane,
+         Thin.NC_BGDEFAULT_MASK or
+         Shift_Left (Unsigned_32 (R), 16) or
+         Shift_Left (Unsigned_32 (G), 8) or
+                     Unsigned_32 (B));
    end Set_Foreground_RGB;
 
    package body Cursor is
@@ -202,7 +248,7 @@ package body Notcurses.Plane is
          (Plane : Notcurses_Plane)
          return Coordinate
       is
-         Y, X : aliased int;
+         Y, X : aliased unsigned;
       begin
          Thin.ncplane_cursor_yx (Plane, Y'Access, X'Access);
          return (Y => Integer (Y), X => Integer (X));

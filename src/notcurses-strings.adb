@@ -9,8 +9,16 @@ package body Notcurses.Strings is
    is
       use Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
       use Interfaces.C.Strings;
-      Chars : constant chars_ptr := New_String (Encode (Str));
+      use Interfaces.C;
+      Chars : chars_ptr := New_String (Encode (Str));
+      Columns : aliased int;
+      Result : int;
    begin
-      return Natural (Notcurses_Thin.ncstrwidth (Chars));
+      Result := Notcurses_Thin.ncstrwidth (Chars, null, Columns'Access);
+      if Result < 0 then
+         raise Program_Error with "ncstrwidth returned error";
+      end if;
+      Free (Chars);
+      return Integer (Columns);
    end Width;
 end Notcurses.Strings;

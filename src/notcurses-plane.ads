@@ -35,11 +35,6 @@ package Notcurses.Plane is
    procedure Erase
       (Plane : Notcurses_Plane);
 
-   procedure Erase_Region
-      (Plane : Notcurses_Plane;
-       Start : Coordinate;
-       Size  : Coordinate);
-
    procedure Put
       (Plane : Notcurses_Plane;
        Str   : Wide_Wide_String;

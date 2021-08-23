@@ -4,24 +4,30 @@
 --  SPDX-License-Identifier: Apache-2.0
 --
 with Interfaces.C; use Interfaces.C;
-with Interfaces.C_Streams;
+with Notcurses.Plane;
 
 package body Notcurses.Context is
 
    procedure Initialize is
    begin
       Default_Context := Notcurses_Context
-         (Thin.notcurses_init (Default_Options'Access, Interfaces.C_Streams.NULL_Stream));
+         (Thin.notcurses_init (Default_Options'Access, null));
    end Initialize;
 
    procedure Render
       (Context : Notcurses_Context)
    is
+      pragma Unreferenced (Context);
       Result : int;
+      Std : constant Notcurses_Plane := Notcurses.Plane.Standard_Plane;
    begin
-      Result := Thin.notcurses_render (Context);
+      Result := Thin.ncpile_render (Std);
       if Result /= 0 then
-         raise Notcurses_Error with "Failed to render notcurses context";
+         raise Notcurses_Error with "Failed to render standard plane";
+      end if;
+      Result := Thin.ncpile_rasterize (Std);
+      if Result /= 0 then
+         raise Notcurses_Error with "Failed to rasterize standard plane";
       end if;
    end Render;
 
@@ -39,20 +45,20 @@ package body Notcurses.Context is
       (Context : Notcurses_Context)
    is
    begin
-      if Thin.notcurses_mouse_enable (Context) /= 0 then
-         raise Notcurses_Error with "Failed to enable mouse";
+      if Thin.notcurses_mice_enable (Context, Thin.NCMICE_ALL_EVENTS) /= 0 then
+         raise Notcurses_Error with "Failed to enable mice";
       end if;
    end Enable_Mouse;
 
    function Get
       (Context : Notcurses_Context)
-      return Notcurses_Input
+      return Wide_Wide_Character
    is
-      NI          : aliased Thin.ncinput;
-      Char        : Wide_Wide_Character with Unreferenced;
+      NI : aliased Thin.ncinput;
+      Codepoint : Interfaces.Unsigned_32;
    begin
-      Char := Wide_Wide_Character'Val (Thin.notcurses_get (Context, null, NI'Access));
-      return To_Ada (NI);
+      Codepoint := Thin.notcurses_get (Context, null, NI'Access);
+      return Wide_Wide_Character'Val (Natural (Codepoint));
    end Get;
 
    function Palette_Size

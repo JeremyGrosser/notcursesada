@@ -21,7 +21,7 @@ package Notcurses.Context is
 
    function Get
       (Context : Notcurses_Context)
-      return Notcurses_Input;
+      return Wide_Wide_Character;
 
    function Palette_Size
       (Context : Notcurses_Context)

@@ -21,10 +21,6 @@ begin
       Test_Dimensions;
       Test_Plane_Split;
       Test_Progress_Bar;
-      Test_Visual_File;
-      Test_Visual_Bitmap;
-      Test_Visual_Pixel;
-      --  Test_Input;
       Notcurses.Context.Stop;
    exception
       when E : others =>
@@ -32,6 +28,4 @@ begin
          Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
          return;
    end;
-
-   Test_Direct;
 end Notcurses_Test;

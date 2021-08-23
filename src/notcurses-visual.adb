@@ -37,21 +37,14 @@ package body Notcurses.Visual is
       use Interfaces.C;
       B : constant Thin.ncblitter_e := Thin.ncblitter_e'Val (Blitter'Pos (Blit));
    begin
-      return Thin.ncvisual_from_plane (Plane, B,
-         int (Position.Y), int (Position.X),
-         int (Size.Y), int (Size.X));
+      return Thin.ncvisual_from_plane
+         (n    => Plane,
+          blit => B,
+          begy => int (Position.Y),
+          begx => int (Position.X),
+          leny => unsigned (Size.Y),
+          lenx => unsigned (Size.X));
    end From_Plane;
-
-   procedure Render
-      (Context : Notcurses_Context;
-       Visual  : Notcurses_Visual;
-       Options : Visual_Options;
-       Plane   : out Notcurses_Plane)
-   is
-      O : aliased Thin.ncvisual_options := To_C (Options);
-   begin
-      Plane := Thin.ncvisual_render (Context, Visual, O'Access);
-   end Render;
 
    function Decode
       (Visual : Notcurses_Visual)
@@ -82,18 +75,21 @@ package body Notcurses.Visual is
       (O : Visual_Options)
       return Thin.ncvisual_options
    is
+      use Interfaces.C;
       X : constant Thin.ncvisual_options :=
          (n          => O.Plane,
           scaling    => Thin.ncscale_e'Val (Scale_Mode'Pos (O.Scaling)),
-          y          => Interfaces.C.int (O.Position.Y),
-          x          => Interfaces.C.int (O.Position.X),
-          begy       => Interfaces.C.int (O.Origin.Y),
-          begx       => Interfaces.C.int (O.Origin.X),
-          leny       => Interfaces.C.int (O.Size.Y),
-          lenx       => Interfaces.C.int (O.Size.X),
+          y          => int (O.Position.Y),
+          x          => int (O.Position.X),
+          begy       => unsigned (O.Origin.Y),
+          begx       => unsigned (O.Origin.X),
+          leny       => unsigned (O.Size.Y),
+          lenx       => unsigned (O.Size.X),
           blitter    => Thin.ncblitter_e'Val (Blitter'Pos (O.Blit)),
           flags      => To_UInt64 (O.Flags),
-          transcolor => O.Transparent_Color);
+          transcolor => O.Transparent_Color,
+          pxoffy     => unsigned (O.Offset.Y),
+          pxoffx     => unsigned (O.Offset.X));
    begin
       return X;
    end To_C;
@@ -106,14 +102,18 @@ package body Notcurses.Visual is
    is
       use Interfaces.C;
       O      : aliased Thin.ncvisual_options := To_C (Options);
-      X, Y   : aliased int;
+      Geom   : aliased Thin.ncvgeom;
       Status : int;
    begin
-      Status := Thin.ncvisual_blitter_geom (Context, Visual, O'Access, Y'Access, X'Access, null, null, null);
+      Status := Thin.ncvisual_geom
+         (nc    => Context,
+          n     => Visual,
+          vopts => O'Access,
+          geom  => Geom'Access);
       if Status /= 0 then
          raise Notcurses_Error with "Invalid visual options";
       end if;
-      return (Y => Integer (Y), X => Integer (X));
+      return (Y => Integer (Geom.leny), X => Integer (Geom.lenx));
    end Dimensions;
 
    function Scale
@@ -124,14 +124,18 @@ package body Notcurses.Visual is
    is
       use Interfaces.C;
       O      : aliased Thin.ncvisual_options := To_C (Options);
-      X, Y   : aliased int;
+      Geom   : aliased Thin.ncvgeom;
       Status : int;
    begin
-      Status := Thin.ncvisual_blitter_geom (Context, Visual, O'Access, null, null, Y'Access, X'Access, null);
+      Status := Thin.ncvisual_geom
+         (nc    => Context,
+          n     => Visual,
+          vopts => O'Access,
+          geom  => Geom'Access);
       if Status /= 0 then
          raise Notcurses_Error with "Invalid visual options";
       end if;
-      return (Y => Integer (Y), X => Integer (X));
+      return (Y => Integer (Geom.scaley), X => Integer (Geom.scalex));
    end Scale;
 
    function Media_Default_Blitter
@@ -155,7 +159,11 @@ package body Notcurses.Visual is
       use Interfaces.C;
       Status : int;
    begin
-      Status := Thin.ncvisual_set_yx (Visual, int (Position.Y), int (Position.X), To_C (Color));
+      Status := Thin.ncvisual_set_yx
+         (n       => Visual,
+          y       => unsigned (Position.Y),
+          x       => unsigned (Position.X),
+          pixel   => To_C (Color));
       if Status /= 0 then
          raise Notcurses_Error with "Set pixel at (" & Position.Y'Image & "," & Position.X'Image & ") failed";
       end if;
@@ -171,7 +179,11 @@ package body Notcurses.Visual is
       Pixel  : aliased Unsigned_32;
       Status : int;
    begin
-      Status := Thin.ncvisual_at_yx (Visual, int (Position.Y), int (Position.X), Pixel'Access);
+      Status := Thin.ncvisual_at_yx
+         (n => Visual,
+          y => unsigned (Position.Y),
+          x => unsigned (Position.X),
+          pixel => Pixel'Access);
       if Status /= 0 then
          raise Notcurses_Error with "Get pixel at (" & Position.Y'Image & "," & Position.X'Image & ") failed";
       end if;
