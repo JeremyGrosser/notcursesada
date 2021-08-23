@@ -5,13 +5,12 @@ This is an Ada binding for the notcurses library. [notcurses](https://notcurses.
 notcursesada is a work in progress and should not be used for production code. The API may change without notice. Many features of notcurses are not yet implemented.
 
 # Dependenices
-Tested with gnat 10.2.1 on Debian 11 (bullseye) and notcurses 2.3.13. Other toolchain and library versions may work.
+The `master` branch of this repository tracks upstream notcurses development and is therefore a moving target. The `stable` branch tracks the libnotcurses version available in Debian stable, currently 2.2.3.
 
 # Usage
 Add notcursesada to your project with [Alire](https://alire.ada.dev/)
 
-    git clone https://github.com/JeremyGrosser/notcursesada
-    alr with notcursesada --use=notcursesada/
+    alr with notcursesada --use=https://github.com/JeremyGrosser/notcursesada
 
 See [tests.adb](tests/tests.adb) for examples.
 
