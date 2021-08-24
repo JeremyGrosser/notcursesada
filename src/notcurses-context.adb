@@ -51,7 +51,7 @@ package body Notcurses.Context is
       NI          : aliased Thin.ncinput;
       Char        : Wide_Wide_Character with Unreferenced;
    begin
-      Char := Thin.notcurses_get (Context, null, NI'Access);
+      Char := Wide_Wide_Character'Val (Thin.notcurses_get (Context, null, NI'Access));
       return To_Ada (NI);
    end Get;
 
