@@ -1,6 +1,7 @@
 bin/
 obj/
 alire/
+config/
 *.ali
 *.o
 *.a
