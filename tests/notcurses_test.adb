@@ -21,6 +21,7 @@ begin
       Test_Dimensions;
       Test_Plane_Split;
       Test_Progress_Bar;
+      Test_Visual;
       Test_Input;
       Notcurses.Context.Stop;
    exception

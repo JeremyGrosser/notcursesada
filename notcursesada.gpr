@@ -14,7 +14,7 @@ library project Notcursesada is
           ("-gnatwa",    -- All warnings
            "-gnatVa",    -- All validity checks
            "-gnatyg",    -- GNAT Style checks
-           "-gnatyM120", -- Maximum line length
+           "-gnatyM140", -- Maximum line length
            "-gnatyO",    -- Overriding subprograms explicitly marked as such
            "-gnata",     -- Enable assertions and contracts
            "-gnatn",     -- Enable inlining

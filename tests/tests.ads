@@ -12,6 +12,7 @@ package Tests is
    procedure Test_Input;
    procedure Test_Plane_Split;
    procedure Test_Progress_Bar;
+   procedure Test_Visual;
 
    procedure Test_Direct;
 end Tests;

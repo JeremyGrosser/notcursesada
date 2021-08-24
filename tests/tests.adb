@@ -11,6 +11,7 @@ with Notcurses.Direct;
 with Notcurses.Plane;
 with Notcurses.Progress_Bar;
 with Notcurses.Channel;
+with Notcurses.Visual;
 with Notcurses;
 
 package body Tests is
@@ -267,4 +268,29 @@ package body Tests is
          Stop (Plane);
          Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
    end Test_Direct;
+
+   procedure Test_Visual is
+      use Notcurses;
+      use Notcurses.Plane;
+      use Notcurses.Visual;
+      C : constant Notcurses_Context := Notcurses.Plane.Context (Standard_Plane);
+      O : constant Visual_Options :=
+         (Scaling => Scale,
+          others  => <>);
+      V : constant Notcurses_Visual := From_File ("tests/acidburn.gif");
+      P : Notcurses_Plane;
+   begin
+      loop
+         Notcurses.Visual.Render
+            (Context => C,
+             Options => O,
+             Visual  => V,
+             Plane   => P);
+         Notcurses.Context.Render (C);
+         Destroy (P);
+         exit when Decode (V) /= Ok;
+         delay 0.1;
+      end loop;
+      Destroy (V);
+   end Test_Visual;
 end Tests;
