@@ -1,6 +1,21 @@
 with Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 
 package body Notcurses.Visual is
+   function From_Bitmap
+      (Bitmap : RGBA_Bitmap)
+      return Notcurses_Visual
+   is
+      use Interfaces.C;
+      Rows    : constant int := int (Bitmap'Last (1) - Bitmap'First (1) + 1);
+      Columns : constant int := int (Bitmap'Last (2) - Bitmap'First (2) + 1);
+   begin
+      return Thin.ncvisual_from_rgba
+         (rgba       => Bitmap'Address,
+          rows       => Rows,
+          rowstride  => Columns,
+          cols       => Columns);
+   end From_Bitmap;
+
    function From_File
       (Filename : Wide_Wide_String)
       return Notcurses_Visual

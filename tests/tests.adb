@@ -6,6 +6,7 @@
 with Ada.Text_IO;
 with Ada.Characters.Wide_Wide_Latin_1;
 with Ada.Exceptions;
+with Interfaces;
 with Notcurses.Context;
 with Notcurses.Direct;
 with Notcurses.Plane;
@@ -269,13 +270,14 @@ package body Tests is
          Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
    end Test_Direct;
 
-   procedure Test_Visual is
+   procedure Test_Visual_File is
       use Notcurses;
       use Notcurses.Plane;
       use Notcurses.Visual;
       C : constant Notcurses_Context := Notcurses.Plane.Context (Standard_Plane);
       O : constant Visual_Options :=
          (Scaling => Scale,
+          Plane   => Standard_Plane,
           others  => <>);
       V : constant Notcurses_Visual := From_File ("tests/acidburn.gif");
       P : Notcurses_Plane;
@@ -287,10 +289,43 @@ package body Tests is
              Visual  => V,
              Plane   => P);
          Notcurses.Context.Render (C);
-         Destroy (P);
          exit when Decode (V) /= Ok;
          delay 0.1;
       end loop;
       Destroy (V);
-   end Test_Visual;
+      Erase (Standard_Plane);
+   end Test_Visual_File;
+
+   procedure Test_Visual_Bitmap is
+      use Notcurses;
+      use Notcurses.Plane;
+      use Notcurses.Visual;
+      use Interfaces;
+      C : constant Notcurses_Context := Notcurses.Plane.Context (Standard_Plane);
+      O : constant Visual_Options :=
+         (Scaling => None,
+          Plane   => Standard_Plane,
+          others  => <>);
+      Bitmap : RGBA_Bitmap (1 .. 32, 1 .. 128);
+      Pixel  : RGBA := (0, 0, 0, 255);
+      V      : Notcurses_Visual;
+      P      : Notcurses_Plane;
+   begin
+      for Y in Bitmap'Range (1) loop
+         for X in Bitmap'Range (2) loop
+            Pixel.R := not Pixel.R;
+            Bitmap (Y, X) := Pixel;
+         end loop;
+      end loop;
+      V := From_Bitmap (Bitmap);
+      Render
+         (Context => C,
+          Visual  => V,
+          Options => O,
+          Plane   => P);
+      Notcurses.Context.Render (C);
+      delay 1.0;
+      Destroy (V);
+      Erase (P);
+   end Test_Visual_Bitmap;
 end Tests;

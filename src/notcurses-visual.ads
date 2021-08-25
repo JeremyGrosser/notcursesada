@@ -37,6 +37,18 @@ package Notcurses.Visual is
 
    type Decode_Status is (Ok, End_Of_File, Error);
 
+   type RGBA is record
+      R, G, B, A : Interfaces.Unsigned_8;
+   end record
+      with Size => 32;
+
+   type RGBA_Bitmap is array (Integer range <>, Integer range <>) of RGBA
+      with Component_Size => 32, Alignment => 4;
+
+   function From_Bitmap
+      (Bitmap : RGBA_Bitmap)
+      return Notcurses_Visual;
+
    function From_File
       (Filename : Wide_Wide_String)
       return Notcurses_Visual;
