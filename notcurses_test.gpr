@@ -21,7 +21,7 @@ project Notcurses_Test is
            "-gnatW8",    -- Always interpret source files as UTF-8
            "-gnatQ",     -- Don't quit. Generate ALI and tree files even if illegalities
            "-gnat2020",  -- Ensure we have some modern features
-           "-Og",        -- Optimization
+           "-O0",        -- Optimization
            "-g");        -- Debug info
    end Compiler;
 

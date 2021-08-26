@@ -53,6 +53,40 @@ package Notcurses.Visual is
       (Filename : Wide_Wide_String)
       return Notcurses_Visual;
 
+   function Dimensions
+      (Context : Notcurses_Context;
+       Visual  : Notcurses_Visual;
+       Options : Visual_Options)
+       return Coordinate;
+
+   function Scale
+      (Context : Notcurses_Context;
+       Visual  : Notcurses_Visual;
+       Options : Visual_Options)
+       return Coordinate;
+
+   function From_Plane
+      (Plane    : Notcurses_Plane;
+       Blit     : Blitter;
+       Position : Coordinate := (0, 0);
+       Size     : Coordinate := (-1, -1))
+      return Notcurses_Visual;
+
+   function Media_Default_Blitter
+      (Context : Notcurses_Context;
+       Scale   : Scale_Mode)
+      return Blitter;
+
+   procedure Set
+      (Visual   : Notcurses_Visual;
+       Position : Coordinate;
+       Color    : RGBA);
+
+   function Get
+      (Visual   : Notcurses_Visual;
+       Position : Coordinate)
+       return RGBA;
+
    procedure Render
       (Context : Notcurses_Context;
        Visual  : Notcurses_Visual;
@@ -77,5 +111,13 @@ private
    function To_C
       (O : Visual_Options)
       return Thin.ncvisual_options;
+
+   function To_C is new Ada.Unchecked_Conversion
+      (Source => RGBA,
+       Target => Interfaces.Unsigned_32);
+
+   function To_Ada is new Ada.Unchecked_Conversion
+      (Source => Interfaces.Unsigned_32,
+       Target => RGBA);
 
 end Notcurses.Visual;

@@ -27,6 +27,21 @@ package body Notcurses.Visual is
       return Thin.ncvisual_from_file (Chars);
    end From_File;
 
+   function From_Plane
+      (Plane    : Notcurses_Plane;
+       Blit     : Blitter;
+       Position : Coordinate := (0, 0);
+       Size     : Coordinate := (-1, -1))
+      return Notcurses_Visual
+   is
+      use Interfaces.C;
+      B : constant Thin.ncblitter_e := Thin.ncblitter_e'Val (Blitter'Pos (Blit));
+   begin
+      return Thin.ncvisual_from_plane (Plane, B,
+         int (Position.Y), int (Position.X),
+         int (Size.Y), int (Size.X));
+   end From_Plane;
+
    procedure Render
       (Context : Notcurses_Context;
        Visual  : Notcurses_Visual;
@@ -82,4 +97,85 @@ package body Notcurses.Visual is
    begin
       return X;
    end To_C;
+
+   function Dimensions
+      (Context : Notcurses_Context;
+       Visual  : Notcurses_Visual;
+       Options : Visual_Options)
+       return Coordinate
+   is
+      use Interfaces.C;
+      O      : aliased Thin.ncvisual_options := To_C (Options);
+      X, Y   : aliased int;
+      Status : int;
+   begin
+      Status := Thin.ncvisual_blitter_geom (Context, Visual, O'Access, Y'Access, X'Access, null, null, null);
+      if Status /= 0 then
+         raise Notcurses_Error with "Invalid visual options";
+      end if;
+      return (Y => Integer (Y), X => Integer (X));
+   end Dimensions;
+
+   function Scale
+      (Context : Notcurses_Context;
+       Visual  : Notcurses_Visual;
+       Options : Visual_Options)
+       return Coordinate
+   is
+      use Interfaces.C;
+      O      : aliased Thin.ncvisual_options := To_C (Options);
+      X, Y   : aliased int;
+      Status : int;
+   begin
+      Status := Thin.ncvisual_blitter_geom (Context, Visual, O'Access, null, null, Y'Access, X'Access, null);
+      if Status /= 0 then
+         raise Notcurses_Error with "Invalid visual options";
+      end if;
+      return (Y => Integer (Y), X => Integer (X));
+   end Scale;
+
+   function Media_Default_Blitter
+      (Context : Notcurses_Context;
+       Scale   : Scale_Mode)
+      return Blitter
+   is
+      use Thin;
+      S : constant ncscale_e := ncscale_e'Val (Scale_Mode'Pos (Scale));
+      B : ncblitter_e;
+   begin
+      B := ncvisual_media_defblitter (Context, S);
+      return Blitter'Val (ncblitter_e'Pos (B));
+   end Media_Default_Blitter;
+
+   procedure Set
+      (Visual   : Notcurses_Visual;
+       Position : Coordinate;
+       Color    : RGBA)
+   is
+      use Interfaces.C;
+      Status : int;
+   begin
+      Status := Thin.ncvisual_set_yx (Visual, int (Position.Y), int (Position.X), To_C (Color));
+      if Status /= 0 then
+         raise Notcurses_Error with "Set pixel at (" & Position.Y'Image & "," & Position.X'Image & ") failed";
+      end if;
+   end Set;
+
+   function Get
+      (Visual   : Notcurses_Visual;
+       Position : Coordinate)
+       return RGBA
+   is
+      use Interfaces.C;
+      use Interfaces;
+      Pixel  : aliased Unsigned_32;
+      Status : int;
+   begin
+      Status := Thin.ncvisual_at_yx (Visual, int (Position.Y), int (Position.X), Pixel'Access);
+      if Status /= 0 then
+         raise Notcurses_Error with "Get pixel at (" & Position.Y'Image & "," & Position.X'Image & ") failed";
+      end if;
+      return To_Ada (Pixel);
+   end Get;
+
 end Notcurses.Visual;

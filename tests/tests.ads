@@ -14,6 +14,8 @@ package Tests is
    procedure Test_Progress_Bar;
    procedure Test_Visual_File;
    procedure Test_Visual_Bitmap;
+   procedure Test_Visual_Pixel;
 
    procedure Test_Direct;
+
 end Tests;

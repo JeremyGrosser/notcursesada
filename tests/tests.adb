@@ -6,7 +6,6 @@
 with Ada.Text_IO;
 with Ada.Characters.Wide_Wide_Latin_1;
 with Ada.Exceptions;
-with Interfaces;
 with Notcurses.Context;
 with Notcurses.Direct;
 with Notcurses.Plane;
@@ -300,7 +299,6 @@ package body Tests is
       use Notcurses;
       use Notcurses.Plane;
       use Notcurses.Visual;
-      use Interfaces;
       C : constant Notcurses_Context := Notcurses.Plane.Context (Standard_Plane);
       O : constant Visual_Options :=
          (Scaling => None,
@@ -308,12 +306,25 @@ package body Tests is
           others  => <>);
       Bitmap : RGBA_Bitmap (1 .. 32, 1 .. 128);
       Pixel  : RGBA := (0, 0, 0, 255);
+      Colors : constant array (Natural range <>) of RGBA :=
+         ((16#00#, 16#00#, 16#FF#, 16#FF#),
+          (16#00#, 16#FF#, 16#00#, 16#FF#),
+          (16#00#, 16#FF#, 16#FF#, 16#FF#),
+          (16#FF#, 16#00#, 16#00#, 16#FF#),
+          (16#FF#, 16#00#, 16#FF#, 16#FF#),
+          (16#FF#, 16#FF#, 16#00#, 16#FF#),
+          (16#FF#, 16#FF#, 16#FF#, 16#FF#));
+      I      : Natural := Colors'First;
       V      : Notcurses_Visual;
-      P      : Notcurses_Plane;
+      P      : Notcurses_Plane := Standard_Plane;
    begin
+      Notcurses.Plane.Set_Foreground_RGB (P, 255, 255, 255);
+      Notcurses.Plane.Set_Background_RGB (P, 0, 0, 0);
+      Notcurses.Plane.Fill (P, ' ');
       for Y in Bitmap'Range (1) loop
          for X in Bitmap'Range (2) loop
-            Pixel.R := not Pixel.R;
+            I := (I + 1) mod (Colors'Last + 1);
+            Pixel := Colors (I);
             Bitmap (Y, X) := Pixel;
          end loop;
       end loop;
@@ -326,6 +337,65 @@ package body Tests is
       Notcurses.Context.Render (C);
       delay 1.0;
       Destroy (V);
-      Erase (P);
    end Test_Visual_Bitmap;
+
+   procedure Test_Visual_Pixel is
+      use Notcurses;
+      use Notcurses.Visual;
+      Plane   : Notcurses_Plane := Notcurses.Plane.Standard_Plane;
+      Context : constant Notcurses_Context := Notcurses.Plane.Context (Plane);
+   begin
+      --  Plane must contain only spaces or block characters before calling From_Plane
+      Notcurses.Plane.Fill (Plane, ' ');
+      Notcurses.Context.Render (Context);
+      declare
+         Visual  : constant Notcurses_Visual := From_Plane
+            (Plane => Plane,
+             Blit  => Media_Default_Blitter (Context, Scale => None));
+         Options : constant Visual_Options :=
+            (Plane   => Plane,
+             Scaling => None,
+             others  => <>);
+         Size   : constant Coordinate := Dimensions (Context, Visual, Options);
+         Radius : constant Natural := (Integer'Min (Size.X, Size.Y) - 1) / 2;
+         Origin : constant Coordinate :=
+            (Y => Radius,
+             X => Radius);
+         Color  : constant RGBA := (255, 0, 0, 255);
+
+         --  http://rosettacode.org/wiki/Bitmap/Midpoint_circle_algorithm#Ada
+         F     : Integer := 1 - Radius;
+         ddF_X : Integer := 0;
+         ddF_Y : Integer := (-2) * Radius;
+         X     : Integer := 0;
+         Y     : Integer := Radius;
+      begin
+         Set (Visual, (Origin.X, Origin.Y + Radius), Color);
+         Set (Visual, (Origin.X, Origin.Y - Radius), Color);
+         Set (Visual, (Origin.X + Radius, Origin.Y), Color);
+         Set (Visual, (Origin.X - Radius, Origin.Y), Color);
+         while X < Y loop
+            if F >= 0 then
+               Y := Y - 1;
+               ddF_Y := ddF_Y + 2;
+               F := F + ddF_Y;
+            end if;
+            X := X + 1;
+            ddF_X := ddF_X + 2;
+            F := F + ddF_X + 1;
+            Set (Visual, (Origin.X + X, Origin.Y + Y), Color);
+            Set (Visual, (Origin.X - X, Origin.Y + Y), Color);
+            Set (Visual, (Origin.X + X, Origin.Y - Y), Color);
+            Set (Visual, (Origin.X - X, Origin.Y - Y), Color);
+            Set (Visual, (Origin.X + Y, Origin.Y + X), Color);
+            Set (Visual, (Origin.X - Y, Origin.Y + X), Color);
+            Set (Visual, (Origin.X + Y, Origin.Y - X), Color);
+            Set (Visual, (Origin.X - Y, Origin.Y - X), Color);
+         end loop;
+         Notcurses.Visual.Render (Context, Visual, Options, Plane);
+         Notcurses.Context.Render (Context);
+      end;
+      delay 1.0;
+      Notcurses.Plane.Erase (Plane);
+   end Test_Visual_Pixel;
 end Tests;

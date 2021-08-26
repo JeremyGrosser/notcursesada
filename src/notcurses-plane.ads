@@ -49,6 +49,10 @@ package Notcurses.Plane is
        Y     : Integer := -1;
        Align : Alignment := Unaligned);
 
+   procedure Fill
+      (Plane : Notcurses_Plane;
+       C     : Wide_Wide_Character);
+
    procedure Set_Background
       (Plane   : Notcurses_Plane;
        Channel : Notcurses_Channel);

@@ -135,6 +135,18 @@ package body Notcurses.Plane is
       end if;
    end Put_Aligned;
 
+   procedure Fill
+      (Plane : Notcurses_Plane;
+       C     : Wide_Wide_Character)
+   is
+      Size : constant Coordinate := Dimensions (Plane);
+      S    : constant Wide_Wide_String (1 .. Size.X) := (others => C);
+   begin
+      for Y in 0 .. Size.Y - 1 loop
+         Put (Plane, S, Y => Y, X => 0);
+      end loop;
+   end Fill;
+
    procedure Set_Background
       (Plane   : Notcurses_Plane;
        Channel : Notcurses_Channel)

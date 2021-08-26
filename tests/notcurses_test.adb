@@ -23,6 +23,7 @@ begin
       Test_Progress_Bar;
       Test_Visual_File;
       Test_Visual_Bitmap;
+      Test_Visual_Pixel;
       Test_Input;
       Notcurses.Context.Stop;
    exception
