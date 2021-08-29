@@ -24,7 +24,7 @@ begin
       Test_Visual_File;
       Test_Visual_Bitmap;
       Test_Visual_Pixel;
-      Test_Input;
+      --  Test_Input;
       Notcurses.Context.Stop;
    exception
       when E : others =>
