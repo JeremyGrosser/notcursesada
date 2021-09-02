@@ -10,6 +10,8 @@ package Notcurses.Plane is
 
    type Alignment is (Unaligned, Left, Center, Right);
 
+   --  Get a reference to the standard plane using the default context. The
+   --  default context is initialized if needed.
    function Standard_Plane
       return Notcurses_Plane;
 

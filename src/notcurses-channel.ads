@@ -36,6 +36,14 @@ package Notcurses.Channel is
       Not_Default at 0 range 30 .. 30;
    end record;
 
+   Default_Color : constant Notcurses_Channel :=
+      (Use_Palette => False,
+       Not_Default => False,
+       Alpha       => Opaque,
+       R           => Color_Type'Last,
+       G           => Color_Type'Last,
+       B           => Color_Type'Last);
+
    function To_C is new Ada.Unchecked_Conversion
       (Source => Notcurses_Channel,
        Target => Interfaces.Unsigned_32);
