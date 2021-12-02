@@ -1,7 +1,11 @@
-name = "notcursesada"
-description = "notcurses text user interface library binding"
-version = "0.0.1"
+name = "notcurses"
+description = "Bindings for notcurses, a blingful character graphics/TUI library"
+version = "3.0.0"
 
 authors = ["Jeremy Grosser"]
 maintainers = ["Jeremy Grosser <jeremy@synack.me>"]
 maintainers-logins = ["JeremyGrosser"]
+[[depends-on]]  # Added by alr
+notcurses_core = "^3.0.0"  # Added by alr
+[[pins]]  # Added by alr
+notcurses_core = { path='core' }   # Added by alr

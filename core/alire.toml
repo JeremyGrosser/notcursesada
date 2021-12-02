@@ -1,0 +1,7 @@
+name = "notcurses_core"
+description = "Shiny new project"
+version = "3.0.0"
+
+authors = ["Jeremy Grosser"]
+maintainers = ["Jeremy Grosser <jeremy@synack.me>"]
+maintainers-logins = ["JeremyGrosser"]
