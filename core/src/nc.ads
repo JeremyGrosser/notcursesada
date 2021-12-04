@@ -147,7 +147,7 @@ package NC is
 
    function Core_Init
       (Opts : access Options;
-       FP   : FILEs := stdout)
+       Fp   : FILEs := stdout)
        return access Context
    with Import, Convention => C, External_Name => "notcurses_core_init";
    --  The same as notcurses_init(), but without any multimedia functionality,
@@ -212,6 +212,46 @@ package NC is
       (N : not null access Plane)
       return Status_Code
    with Import, Convention => C, External_Name => "ncpile_render";
+   --  Renders the pile of which N is a part. Rendering this pile again will
+   --  blow away the render. To actually write out the render, call
+   --  Pile_Rasterize.
+
+   function Pile_Rasterize
+      (N : not null access Plane)
+      return Status_Code
+   with Import, Convention => C, External_Name => "ncpile_rasterize";
+   --  Make the physical screen match the last rendered frame from the pile of
+   --  which N is a part. This is a blocking call. Don't call this before the
+   --  pile has been rendered (doing so will likely result in a blank screen).
+
+   function Render
+      (NC : not null access Context)
+      return Status_Code;
+   --  Renders and rasterizes the standard pile in one shot. Blocking call.
+
+   function Pile_Render_To_Buffer
+      (P   : not null access Plane;
+       Buf : not null char_array_access;
+       Len : not null access Interfaces.C.size_t)
+       return Status_Code
+   with Import, Convention => C, External_Name => "ncpile_render_to_buffer";
+   --  Perform the rendering and rasterization portion of Pile_Render and
+   --  Pile_Rasterize, but do not write the resulting buffer out to the
+   --  terminal. Using this function, the user can control the writeout
+   --  process. The returned buffer must be freed by the caller.
+
+   function Pile_Render_To_File
+      (P  : not null access Plane;
+       Fp : not null access FILEs)
+       return Status_Code
+   with Import, Convention => C, External_Name => "ncpile_render_to_file";
+   --  Write the last rendered frame, in its entirety, to Fp. If a frame has
+   --  not yet been rendered, nothing will be written.
+
+   procedure Drop_Planes
+      (NC : not null access Context)
+   with Import, Convention => C, External_Name => "notcurses_drop_planes";
+   --  Destroy all ncplanes other than the stdplane.
 
 private
 

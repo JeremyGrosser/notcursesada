@@ -28,6 +28,11 @@ begin
       null;
    end;
 
+   Status := NC.Render (Context);
+   if NC.Is_Error (Status) then
+      return;
+   end if;
+
    Status := NC.Leave_Alternate_Screen (Context);
    if NC.Is_Error (Status) then
       return;
