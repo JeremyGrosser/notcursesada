@@ -15,6 +15,14 @@ package NC is
        Blit_8x1)
    with Convention => C;
 
+   type Scale is
+     (Scale_None,
+      Scale_Scale,
+      Scale_Stretch,
+      Scale_None_Hires,
+      Scale_Scale_Hires)
+   with Convention => C;
+
    --  These log levels consciously map cleanly to those of libav; Notcurses
    --  itself does not use this full granularity. The log level does not affect
    --  the opening and closing banners, which can be disabled via the
@@ -135,15 +143,6 @@ package NC is
    function Is_Error (SC : Status_Code)
       return Boolean;
 
-   function Lex_Margins
-      (Op   : chars_ptr;
-       Opts : not null access Options)
-       return Status_Code
-   with Import, Convention => C, External_Name => "notcurses_lex_margins";
-   --  Lex a margin argument according to the standard Notcurses definition.
-   --  There can be either a single number, which will define all margins
-   --  equally, or there can be four numbers separated by commas.
-
    type Context is private;
 
    function Core_Init
@@ -160,8 +159,63 @@ package NC is
    with Import, Convention => C, External_Name => "notcurses_stop";
    --  Destroy a Notcurses context. A null NC is a no-op.
 
+   function Enter_Alternate_Screen
+      (NC : not null access Context)
+      return Status_Code
+   with Import, Convention => C, External_Name => "notcurses_enter_alternate_screen";
+   --  Shift to the alternate screen, if available. If already using the
+   --  alternate screen, this returns 0 immediately. If the alternate screen is
+   --  not available, this returns -1 immediately. Entering the alternate
+   --  screen turns off scrolling for the standard plane.
+
+   function Leave_Alternate_Screen
+      (NC : not null access Context)
+      return Status_Code
+   with Import, Convention => C, External_Name => "notcurses_leave_alternate_screen";
+   --  Exit the alternate screen. Immediately returns 0 if not currently using
+   --  the alternate screen.
+
+   type Plane is private;
+
+   function Standard_Plane
+      (NC : not null access Context)
+      return access Plane
+   with Import, Convention => C, External_Name => "notcurses_stdplane";
+   --  Get a reference to the standard plane (one matching our current idea of
+   --  the terminal size) for this terminal. The standard plane always exists,
+   --  and its origin is always at the uppermost, leftmost cell of the
+   --  terminal.
+
+   function Pile_Top
+      (N : not null access Plane)
+      return access Plane
+   with Import, Convention => C, External_Name => "ncpile_top";
+   --  Return the topmost plane of the pile containing N.
+
+   function Pile_Bottom
+      (N : not null access Plane)
+      return access Plane
+   with Import, Convention => C, External_Name => "ncpile_bottom";
+   --  Return the bottommost plane of the pile containing N.
+
+   function Top
+      (NC : not null access Context)
+      return access Plane;
+   --  Return the topmost plane of the standard pile.
+
+   function Bottom
+      (NC : not null access Context)
+      return access Plane;
+   --  Return the bottommost plane of the standard pile.
+
+   function Pile_Render
+      (N : not null access Plane)
+      return Status_Code
+   with Import, Convention => C, External_Name => "ncpile_render";
+
 private
 
    type Context is null record;
+   type Plane is null record;
 
 end NC;
