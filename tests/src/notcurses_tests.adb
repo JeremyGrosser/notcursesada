@@ -1,4 +1,5 @@
 with Interfaces.C.Strings; use Interfaces.C.Strings;
+with Interfaces;
 with NC.Media;
 with NC;
 
@@ -32,6 +33,13 @@ begin
    if NC.Is_Error (Status) then
       return;
    end if;
+
+   declare
+      I : aliased NC.Input;
+      C : Interfaces.Unsigned_32;
+   begin
+      C := NC.Get (Context, null, I'Access);
+   end;
 
    Status := NC.Leave_Alternate_Screen (Context);
    if NC.Is_Error (Status) then

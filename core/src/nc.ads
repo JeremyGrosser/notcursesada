@@ -1,6 +1,7 @@
 with Interfaces.C.Strings; use Interfaces.C.Strings;
 with Interfaces.C_Streams; use Interfaces.C_Streams;
 with Interfaces.C; use Interfaces.C;
+with Interfaces; use Interfaces;
 
 package NC is
    type Blitter is
@@ -252,6 +253,57 @@ package NC is
       (NC : not null access Context)
    with Import, Convention => C, External_Name => "notcurses_drop_planes";
    --  Destroy all ncplanes other than the stdplane.
+
+   --  All input is taken from stdin. We attempt to read a single UTF8-encoded
+   --  Unicode codepoint, *not* an entire Extended Grapheme Cluster. It is also
+   --  possible that we will read a special keypress, i.e. anything that doesn't
+   --  correspond to a Unicode codepoint (e.g. arrow keys, function keys, screen
+   --  resize events, etc.). These are mapped into a Unicode's area beyond the
+   --  17 65536-entry Planes, starting at U+1115000. See <notcurses/nckeys.h>.
+
+   --  notcurses_get_nblock() is nonblocking. notcurses_get_blocking() blocks
+   --  until a codepoint or special key is read, or until interrupted by a signal.
+   --  notcurses_get() allows an optional timeout to be controlled.
+
+   --  In the case of a valid read, a 32-bit Unicode codepoint is returned. 0 is
+   --  returned to indicate that no input was available. Otherwise (including on
+   --  EOF) (uint32_t)-1 is returned.
+
+   type Input_Event_Type is (Unknown, Press, Repeat, Release)
+      with Convention => C;
+
+   type Input is record
+      Id       : Unsigned_32;       --  Unicode codepoint or synthesized NCKEY event
+      Y, X     : Integer;           --  y/x cell coordinate of event, -1 for undefined
+      UTF8     : String (1 .. 5);   --  UTF8 representation, if one exists
+      Alt      : Boolean;           --  Was Alt held?
+      Shift    : Boolean;           --  Was Shift held?
+      Ctrl     : Boolean;           --  Was Ctrl held?
+      Evtype   : Input_Event_Type;
+      Ypx, Xpx : Integer;           --  pixel offsets within cell, -1 for undefined
+   end record
+      with Convention => C_Pass_By_Copy;
+
+   type Timespec is record
+      tv_sec  : Interfaces.C.long;
+      tv_nsec : Interfaces.C.long;
+   end record
+      with Convention => C;
+   --  Use Ada.Calendar.Conversions.To_Struct_Timespec to populate this record.
+   --  TODO: This seems non-portable and maybe broken.
+
+   function Get
+      (NC : not null access Context;
+       Ts : access Timespec;
+       Ni : access Input)
+       return Unsigned_32
+   with Import, Convention => C, External_Name => "notcurses_get";
+   --  UTF-32-encoded Unicode codepoint from input. This might only be part
+   --  larger EGC. Provide a NULL 'ts' to block at length, and otherwise a
+   --  an absolute deadline calculated using CLOCK_MONOTONIC.  single
+   --  Unicode code point, or a synthesized special key constant, on error.
+   --  Returns 0 on a timeout. If an event is processed, value is the 'id'
+   --  field from that event. 'ni' may be NULL.
 
 private
 
