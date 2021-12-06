@@ -305,6 +305,83 @@ package NC is
    --  Returns 0 on a timeout. If an event is processed, value is the 'id'
    --  field from that event. 'ni' may be NULL.
 
+   --  TODO: notcurses_getvec
+   --        notcurses_inputready_fd
+   --        notcurses_get_nblock
+   --        notcurses_get_blocking
+
+   function Has_Modifiers
+      (Ni : not null access Input)
+      return Boolean;
+
+   pragma Warnings (Off, "24 bits of ""Mouse_Event_Mask"" unused");
+   type Mouse_Event_Mask is record
+      Move_Event     : Boolean;
+      Button_Event   : Boolean;
+      Drag_Event     : Boolean;
+   end record
+      with Convention => C_Pass_By_Copy,
+           Size       => unsigned'Size;
+
+   for Mouse_Event_Mask use record
+      Move_Event     at 0 range 0 .. 0;
+      Button_Event   at 0 range 1 .. 1;
+      Drag_Event     at 0 range 2 .. 2;
+   end record;
+
+   function Mice_Enable
+      (N    : not null access Context;
+       Mask : Mouse_Event_Mask)
+       return Status_Code
+   with Import, Convention => C, External_Name => "notcurses_mice_enable";
+   --  Enable mice events according to Mask. On failure, -1 is returned. On
+   --  success, 0 is returned and mouse events will be published to Get
+
+   function Mice_Disable
+      (N : not null access Context)
+       return Status_Code;
+   --  Disable mouse events. Any events in the input queue can still be
+   --  delivered.
+
+   function Line_Signals_Disable
+      (N : not null access Context)
+      return Status_Code
+   with Import, Convention => C, External_Name => "notcurses_linesigs_disable";
+   --  Disable signals originating from the terminal's line discipline, i.e.
+   --  SIGINT (^C), SIGQUIT (^\), and SIGTSTP (^Z). They are enabled by
+   --  default.
+
+   function Line_Signals_Enable
+      (N : not null access Context)
+      return Status_Code
+   with Import, Convention => C, External_Name => "notcurses_linesigs_enable";
+   --  Restore signals originating from the terminal's line discipline, i.e.
+   --  SIGINT (^C), SIGQUIT (^\), and SIGTSTP (^Z), if disabled.
+
+   function Refresh
+      (N : not null access Context)
+      return Status_Code
+   with Import, Convention => C, External_Name => "notcurses_refresh";
+   --  Refresh the physical screen to match what was last rendered (i.e.,
+   --  without reflecting any changes since the last call to Render). This is
+   --  primarily useful if the screen is externally corrupted, or if an
+   --  NCKEY_RESIZE event has been read and you're not yet ready to render. The
+   --  current screen geometry is returned in 'y' and 'x', if they are not
+   --  null.
+
+   function Get_Context
+      (P : not null access Plane)
+      return access Context
+   with Import, Convention => C, External_Name => "ncplane_notcurses";
+   --  Extract the Notcurses context to which this plane is attached.
+
+   procedure Dimensions
+      (P : not null access Plane;
+       Y : access unsigned;
+       X : access unsigned)
+   with Import, Convention => C, External_Name => "ncplane_dim_yx";
+   --  Return the dimensions of this Plane. Y or X may be null.
+
 private
 
    type Context is null record;

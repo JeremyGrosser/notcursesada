@@ -18,11 +18,6 @@ begin
       return;
    end if;
 
-   Status := NC.Enter_Alternate_Screen (Context);
-   if NC.Is_Error (Status) then
-      return;
-   end if;
-
    declare
       Plane : access NC.Plane := NC.Top (Context);
    begin

@@ -1,10 +1,10 @@
-with "config/notcursesada_config.gpr";
+with "config/notcurses_config.gpr";
 with "libnotcurses.gpr";
 
 project Notcurses is
 
    for Library_Name use "notcursesada";
-   for Library_Version use Project'Library_Name & ".so." & NOTCURSESADA_Config.Crate_Version;
+   for Library_Version use Project'Library_Name & ".so." & Notcurses_Config.Crate_Version;
 
    for Source_Dirs use ("src");
    for Object_Dir use "obj";
@@ -13,17 +13,17 @@ project Notcurses is
 
    type Library_Type_Type is ("relocatable", "static", "static-pic");
    Library_Type : Library_Type_Type :=
-     external ("NOTCURSESADA_LIBRARY_TYPE", external ("LIBRARY_TYPE", "static"));
+     external ("NOTCURSES_LIBRARY_TYPE", external ("LIBRARY_TYPE", "static"));
    for Library_Kind use Library_Type;
 
    type Enabled_Kind is ("enabled", "disabled");
-   Compile_Checks : Enabled_Kind := External ("NOTCURSESADA_COMPILE_CHECKS", "disabled");
-   Runtime_Checks : Enabled_Kind := External ("NOTCURSESADA_RUNTIME_CHECKS", "disabled");
-   Style_Checks : Enabled_Kind := External ("NOTCURSESADA_STYLE_CHECKS", "disabled");
-   Contracts_Checks : Enabled_Kind := External ("NOTCURSESADA_CONTRACTS", "disabled");
+   Compile_Checks : Enabled_Kind := External ("NOTCURSES_COMPILE_CHECKS", "disabled");
+   Runtime_Checks : Enabled_Kind := External ("NOTCURSES_RUNTIME_CHECKS", "disabled");
+   Style_Checks : Enabled_Kind := External ("NOTCURSES_STYLE_CHECKS", "disabled");
+   Contracts_Checks : Enabled_Kind := External ("NOTCURSES_CONTRACTS", "disabled");
 
    type Build_Kind is ("debug", "optimize");
-   Build_Mode : Build_Kind := External ("NOTCURSESADA_BUILD_MODE", "optimize");
+   Build_Mode : Build_Kind := External ("NOTCURSES_BUILD_MODE", "optimize");
 
    Compile_Checks_Switches := ();
    case Compile_Checks is

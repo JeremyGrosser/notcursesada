@@ -26,4 +26,14 @@ package body NC is
       end if;
    end Render;
 
+   function Has_Modifiers
+      (Ni : not null access Input)
+      return Boolean
+   is (Ni.Alt or Ni.Ctrl or Ni.Shift);
+
+   function Mice_Disable
+      (N : not null access Context)
+       return Status_Code
+   is (Mice_Enable (N, Mouse_Event_Mask'(others => False)));
+
 end NC;
