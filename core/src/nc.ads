@@ -382,7 +382,81 @@ package NC is
    with Import, Convention => C, External_Name => "ncplane_dim_yx";
    --  Return the dimensions of this Plane. Y or X may be null.
 
-private
+   --  TODO: ncplane_pixel_geom
+   --        notcurses_at_yx
+
+   type Resize_Callback is access procedure (P : not null access Plane);
+
+   type Plane_Options_Flags is record
+      Horizontal_Aligned   : Boolean;
+      --  Horizontal alignment relative to the parent plane. Use ncalign_e for 'x'.
+
+      Vertical_Aligned     : Boolean;
+      --  Vertical alignment relative to the parent plane. Use ncalign_e for 'y'.
+
+      Marginalized         : Boolean;
+      --  Maximize relative to the parent plane, modulo the provided margins.
+      --  The margins are best-effort; the plane will always be at least 1
+      --  column by 1 row. If the margins can be effected, the plane will be
+      --  sized to all remaining space. 'y' and 'x' are overloaded as the top
+      --  and left margins when this flag is used. 'rows' and 'cols' must be 0
+      --  when this flag is used. This flag is exclusive with both of the
+      --  alignment flags.
+
+      Fixed                : Boolean;
+      --  If this plane is bound to a scrolling plane, it ought *not* scroll
+      --  along with the parent (it will still move with the parent,
+      --  maintaining its relative position, if the parent is moved to a new
+      --  location).
+   end record
+      with Size => 64;
+
+   for Plane_Options_Flags use record
+      Horizontal_Aligned   at 0 range 0 .. 0;
+      Vertical_Aligned     at 0 range 1 .. 1;
+      Marginalized         at 0 range 2 .. 2;
+      Fixed                at 0 range 3 .. 3;
+   end record;
+
+   type Plane_Options is record
+      Y, X           : Integer := 0;
+      --  placement relative to parent plane
+
+      Rows, Columns  : Natural := 0;
+      --  must be > 0 unless Flags.Marginalized
+
+      User_Pointer   : Integer := 0;
+      --  user curry, may be Null_Address
+
+      Name           : chars_ptr := Null_Ptr;
+      --  name (used only for debugging)
+
+      Resize         : Resize_Callback := null;
+      --  callback when parent is resized
+
+      Flags          : Plane_Options_Flags := (others => False);
+
+      Margin_Bottom  : Natural := 0;
+      Margin_Right   : Natural := 0;
+      --  margins (requires Flags.Marginalized)
+   end record
+      with Convention => C_Pass_By_Copy;
+
+   function Plane_Create
+      (N    : not null access Plane;
+       Opts : not null access Plane_Options)
+       return access Plane
+   with Import,
+        Convention    => C,
+        External_Name => "ncplane_create",
+        Pre => Opts.all.Rows > 0 and Opts.all.Columns > 0;
+   --  Create a new Plane bound to plane N, at the offset Y, X (relative to the
+   --  origin of N) and the specified size.  This plane is initially at the top
+   --  of the z-buffer, as if ncplane_move_top() had been called on it. The
+   --  User_Pointer can be retrieved (and reset) later. A Name can be set, used
+   --  in debugging.
+
+   private
 
    type Context is null record;
    type Plane is null record;

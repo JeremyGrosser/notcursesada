@@ -19,7 +19,14 @@ begin
    end if;
 
    declare
-      Plane : access NC.Plane := NC.Top (Context);
+      Root  : access NC.Plane := NC.Top (Context);
+      Opts  : aliased NC.Plane_Options :=
+         (Y       => 1,
+          X       => 1,
+          Rows    => 10,
+          Columns => 10,
+          others  => <>);
+      Child : access NC.Plane := NC.Plane_Create (Root, Opts'Access);
    begin
       null;
    end;
