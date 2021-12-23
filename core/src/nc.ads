@@ -571,6 +571,10 @@ package NC is
 
    type C_bool is new Boolean
       with Convention => C;
+   --  C99 says the size of bool is implementation defined. Ada defines it as
+   --  8-bits wide. libgnat defines it like this, but for some reason
+   --  doesn't export the symbol. Hopefully this gets us close to whatever the
+   --  system's C compiler does.
 
    function Plane_Translate_Absolute
       (N    : not null access constant Plane;
