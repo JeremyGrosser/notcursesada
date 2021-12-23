@@ -2,6 +2,7 @@ with Interfaces.C.Strings; use Interfaces.C.Strings;
 with Interfaces.C_Streams; use Interfaces.C_Streams;
 with Interfaces.C; use Interfaces.C;
 with Interfaces; use Interfaces;
+with System;
 
 package NC is
    type Blitter is
@@ -385,7 +386,8 @@ package NC is
    --  TODO: ncplane_pixel_geom
    --        notcurses_at_yx
 
-   type Resize_Callback is access procedure (P : not null access Plane);
+   type Resize_Callback is access function (N : access constant Plane) return Status_Code
+      with Convention => C;
 
    type Plane_Options_Flags is record
       Horizontal_Aligned   : Boolean;
@@ -444,7 +446,7 @@ package NC is
 
    function Plane_Create
       (N    : not null access Plane;
-       Opts : not null access Plane_Options)
+       Opts : not null access constant Plane_Options)
        return access Plane
    with Import,
         Convention    => C,
@@ -456,7 +458,157 @@ package NC is
    --  User_Pointer can be retrieved (and reset) later. A Name can be set, used
    --  in debugging.
 
-   private
+   function Pile_Create
+      (N    : not null access Plane;
+       Opts : not null access constant Plane_Options)
+       return access Plane
+   with Import,
+        Convention    => C,
+        External_Name => "ncplane_create",
+        Pre => Opts.all.Rows > 0 and Opts.all.Columns > 0;
+   --  Same as Plane_Create, but creates a new pile. The returned plane will be
+   --  the top, bottom, and root of this new pile.
+
+   --  Utility resize callbacks. When a parent plane is resized, it invokes
+   --  each child's resize callback. Any logic can be run in a resize callback,
+   --  but these are some generically useful ones.
+
+   function Plane_Resize_Maximize
+      (N : access Plane)
+      return Status_Code
+   with Import, Convention => C, External_Name => "ncplane_resize_maximize";
+   --  resize the plane to the visual region's size (used for the standard plane).
+
+   function Plane_Resize_Marginalized
+      (N : access Plane)
+      return Status_Code
+   with Import, Convention => C, External_Name => "ncplane_resize_marginalized";
+   --  resize the plane to its parent's size, attempting to enforce the margins
+   --  supplied along with NCPLANE_OPTION_MARGINALIZED.
+
+   function Plane_Resize_Realign
+      (N : access Plane)
+      return Status_Code
+   with Import, Convention => C, External_Name => "ncplane_resize_realign";
+   --  realign the plane 'n' against its parent, using the alignments specified
+   --  with NCPLANE_OPTION_HORALIGNED and/or NCPLANE_OPTION_VERALIGNED.
+
+   function Plane_Resize_Placewithin
+      (N : access Plane)
+      return Status_Code
+   with Import, Convention => C, External_Name => "ncplane_resize_placewithin";
+   --  move the plane such that it is entirely within its parent, if possible.
+   --  no resizing is performed.
+
+   procedure Plane_Set_Resize_Callback
+      (N        : access Plane;
+       Callback : Resize_Callback)
+   with Import, Convention => C, External_Name => "ncplane_set_resizecb";
+   --  Replace the Plane's existing resize callback with Callback (which may be
+   --  null). The standard plane's resize callback may not be changed.
+
+   function Plane_Resize_Callback
+      (N : access constant Plane)
+      return Resize_Callback
+   with Import, Convention => C, External_Name => "ncplane_resizecb";
+   --  Returns the Plane's current resize callback.
+
+   function Plane_Set_Name
+      (N    : not null access Plane;
+       Name : chars_ptr)
+       return Status_Code
+   with Import, Convention => C, External_Name => "ncplane_set_name";
+   --  Set the plane's name (may be null), replacing any current name.
+
+   function Plane_Name
+      (N : not null access constant Plane)
+      return chars_ptr
+   with Import, Convention => C, External_Name => "ncplane_name";
+   --  Return a heap-allocated copy of the plane's name, or null if it has
+   --  none.
+
+   function Plane_Reparent
+      (N          : not null access Plane;
+       New_Parent : not null access Plane)
+       return access Plane
+   with Import, Convention => C, External_Name => "ncplane_reparent";
+   --  Plane N will be unbound from its parent plane, and will be made a bound
+   --  child of New_Parent. If New_Parent is equal to N, N becomes the root of
+   --  a new pile, unless N is already the root of a pile, in which case this
+   --  is a no-op. Returns N. The standard plane cannot be reparented. Any
+   --  planes bound to N are reparented to the previous parent of N.
+
+   function Plane_Reparent_Family
+      (N          : not null access Plane;
+       New_Parent : not null access Plane)
+       return access Plane
+   with Import, Convention => C, External_Name => "ncplane_reparent_family";
+   --  The same as Plane_Reparent, except any planes bound to N come along with
+   --  it to its new destination. Their z-order is maintained. If New_Parent is
+   --  an ancestor of N, null is returned, and no changes are made.
+
+   function Plane_Duplicate
+      (N      : not null access constant Plane;
+       Opaque : System.Address)
+       return access Plane
+   with Import, Convention => C, External_Name => "ncplane_dup";
+   --  Duplicate an existing Plane. The new plane will have the same
+   --  geometry, will duplicate all content, and will start with the same
+   --  rendering state. The new plane will be immediately above the old one on
+   --  the z axis, and will be bound to the same parent (unless N is a root
+   --  plane, in which case the new plane will be bound to it). Bound planes
+   --  are *not* duplicated; the new plane is bound to the parent of N, but has
+   --  no bound planes.
+
+   procedure Plane_Translate
+      (Src  : not null access constant Plane;
+       Dst  : access Plane;
+       Y, X : access Interfaces.C.int)
+   with Import, Convention => C, External_Name => "ncplane_translate";
+   --  provided a coordinate relative to the origin of Src, map it to the same
+   --  absolute coordinate relative to the origin of Dst. either or both of Y
+   --  and X may be null. if Dst is null, it is taken to be the standard plane.
+
+   type C_bool is new Boolean
+      with Convention => C;
+
+   function Plane_Translate_Absolute
+      (N    : not null access constant Plane;
+       Y, X : access Interfaces.C.int)
+       return C_bool
+   with Import, Convention => C, External_Name => "ncplane_translate_abs";
+   --  Fed absolute Y/X coordinates, determine whether that coordinate is
+   --  within the ncplane N. If not, return False. If so, return True. Either
+   --  way, translate the absolute coordinates relative to N. If the point is
+   --  not within N, these coordinates will not be within the dimensions of the
+   --  plane.
+
+   function Plane_Set_Scrolling
+      (N       : not null access Plane;
+       Scrollp : Interfaces.C.unsigned)
+       return C_bool
+   with Import, Convention => C, External_Name => "ncplane_set_scrolling";
+   --  All planes are created with scrolling disabled. Scrolling can be
+   --  dynamically controlled with Plane_Set_Scrolling. Returns True if
+   --  scrolling was previously enabled, or False if it was disabled.
+
+   function Plane_Scrolling
+      (N : not null access Plane)
+      return C_bool
+   with Import, Convention => C, External_Name => "ncplane_scrolling_p";
+
+   function Plane_Set_Autogrow
+      (N     : not null access Plane;
+       Growp : Interfaces.C.unsigned)
+       return C_bool
+   with Import, Convention => C, External_Name => "ncplane_set_autogrow";
+
+   function Plane_Autogrow
+      (N : not null access Plane)
+      return C_bool
+   with Import, Convention => C, External_Name => "ncplane_autogrow";
+
+private
 
    type Context is null record;
    type Plane is null record;
