@@ -612,6 +612,32 @@ package NC is
       return C_bool
    with Import, Convention => C, External_Name => "ncplane_autogrow";
 
+   type Alpha is mod 2 ** 2
+      with Size => 2;
+   type Color is mod 2 ** 8
+      with Size => 8;
+
+   type Channel is record
+      A       : Alpha;
+      R, G, B : Color;
+   end record
+      with Size => 32;
+
+   Palette_Size : constant := 256;
+   --  we support palette-indexed color up to 8 bits
+
+   type Palette_Channels is array (1 .. Palette_Size) of Channel;
+
+   type Palette is record
+      Channels : Palette_Channels;
+   end record
+      with Convention => C;
+
+   function Palette_New
+      (NC : not null access Context)
+      return access Palette
+   with Import, Convention => C, External_Name => "ncpalette_new";
+
 private
 
    type Context is null record;
