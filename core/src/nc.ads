@@ -612,6 +612,12 @@ package NC is
       return C_bool
    with Import, Convention => C, External_Name => "ncplane_autogrow";
 
+
+   --  Palette API. Some terminals only support 256 colors, but allow the full
+   --  palette to be specified with arbitrary RGB colors. In all cases, it's
+   --  more performant to use indexed colors, since it's much less data to
+   --  write to the terminal. If you can limit yourself to 256 colors, that's
+   --  probably best.
    type Alpha is mod 2 ** 2
       with Size => 2;
    type Color is mod 2 ** 8
@@ -623,10 +629,10 @@ package NC is
    end record
       with Size => 32;
 
-   Palette_Size : constant := 256;
+   Max_Palette_Size : constant := 256;
    --  we support palette-indexed color up to 8 bits
 
-   type Palette_Channels is array (1 .. Palette_Size) of Channel;
+   type Palette_Channels is array (1 .. Max_Palette_Size) of Channel;
 
    type Palette is record
       Channels : Palette_Channels;
@@ -637,6 +643,80 @@ package NC is
       (NC : not null access Context)
       return access Palette
    with Import, Convention => C, External_Name => "ncpalette_new";
+   --  Create a new palette store. It will be initialized with notcurses' best
+   --  knowledge of the currently configured palette. The palette upon startup
+   --  cannot be reliably detected, sadly.
+
+   function Palette_Use
+      (NC : not null access Context;
+       P  : not null access constant Palette)
+       return Status_Code
+   with Import, Convention => C, External_Name => "ncpalette_use";
+   --  Attempt to configure the terminal with the provided palette 'p'. Does
+   --  not transfer ownership of P; Palette_Free can (ought) still be called.
+
+   procedure Palette_Free
+      (P : access Palette)
+   with Import, Convention => C, External_Name => "ncpalette_free";
+
+   --  Capabilities, derived from terminfo, environment variables, and queries
+   type Capabilities is record
+      Colors            : Unsigned; --  size of palette for indexed colors
+      UTF8              : Boolean;  --  are we using utf-8 encoding? from nl_langinfo(3)
+      RGB               : Boolean;  --  24bit color? COLORTERM/heuristics/terminfo 'rgb'
+      Can_Change_Colors : Boolean;  --  can we change the palette? terminfo 'ccc'
+      --  these are assigned wholly through TERM- and query-based heuristics
+      Halfblocks        : Boolean;  --  we assume halfblocks, but some are known to lack them
+      Quadrants         : Boolean;  --  do we have (good, vetted) Unicode 1 quadrant support?
+      Sextants          : Boolean;  --  do we have (good, vetted) Unicode 13 sextant support?
+      Braille           : Boolean;  --  do we have Braille support? (linux console does not)
+   end record;
+
+   type Style is record
+      Italic    : Boolean;
+      Underline : Boolean;
+      Undercurl : Boolean;
+      Bold      : Boolean;
+      Struck    : Boolean;
+   end record
+      with Size => 16;
+
+   for Style use record
+      Italic      at 0 range 4 .. 4;
+      Underline   at 0 range 3 .. 3;
+      Undercurl   at 0 range 2 .. 2;
+      Bold        at 0 range 1 .. 1;
+      Struck      at 0 range 0 .. 0;
+   end record;
+
+   function Supported_Styles
+      (NC : not null access constant Context)
+      return Style
+   with Import, Convention => C, External_Name => "notcurses_supported_styles";
+   --  Each attribute is only indicated as supported if the terminal can
+   --  support it together with color. For more information, see the "ncv"
+   --  capability in terminfo(5).
+
+   function Palette_Size
+      (NC : not null access constant Context)
+      return Unsigned
+   with Import, Convention => C, External_Name => "notcurses_palette_size";
+   --  Returns the number of simultaneous colors claimed to be supported, or 1
+   --  if there is no color support. Note that several terminal emulators
+   --  advertise more colors than they actually support, downsampling
+   --  internally.
+
+   function Detected_Terminal
+      (NC : not null access constant Context)
+      return chars_ptr
+   with Import, Convention => C, External_Name => "notcurses_detected_terminal";
+   --  Returns the name (and sometimes version) of the terminal, as Notcurses
+   --  has been best able to determine.
+
+   function Detected_Capabilities
+      (NC : not null access constant Context)
+      return access constant Capabilities
+   with Import, Convention => C, External_Name => "notcurses_capabilities";
 
 private
 
