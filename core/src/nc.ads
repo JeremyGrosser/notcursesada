@@ -612,7 +612,6 @@ package NC is
       return C_bool
    with Import, Convention => C, External_Name => "ncplane_autogrow";
 
-
    --  Palette API. Some terminals only support 256 colors, but allow the full
    --  palette to be specified with arbitrary RGB colors. In all cases, it's
    --  more performant to use indexed colors, since it's much less data to
@@ -718,6 +717,162 @@ package NC is
       return access constant Capabilities
    with Import, Convention => C, External_Name => "notcurses_capabilities";
 
+   type Pixel_Implementation is
+      (None,
+       Sixel,
+       LinuxFB,
+       ITerm2,
+       Kitty_Static,
+       --  C=1 (disabling scrolling) was only introduced in 0.20.0, at the same
+       --  time as animation. prior to this, graphics had to be entirely
+       --  redrawn on any change, and it wasn't possible to use the bottom
+       --  line.
+       Kitty_Animated,
+       --  until 0.22.0's introduction of 'a=c' for self-referential
+       --  composition, we had to keep a complete copy of the RGBA data, in
+       --  case a wiped cell needed to be rebuilt. we'd otherwise have to
+       --  unpack the glyph and store it into the auxvec on the fly.
+       Kitty_Selfref)
+       --  with 0.22.0, we only ever write transparent cells after writing the
+       --  original image (which we now deflate, since we needn't unpack it
+       --  later). the only data we need keep is the auxvecs.
+   with Convention => C;
+
+   function Check_Pixel_Support
+      (NC : not null access constant Context)
+      return Pixel_Implementation
+   with Import, Convention => C, External_Name => "notcurses_check_pixel_support";
+   --  Can we blit pixel-accurate bitmaps?
+
+   --  TODO: Capabilities wrappers
+   --  function Can_Change_Color
+   --     (Caps : Capabilities)
+   --     return Boolean;
+   --  Can we set the "hardware" palette? Requires the "ccc" terminfo
+   --  capability, and that the number of colors supported is at least the size
+   --  of our ncpalette structure.
+
+   --  function Can_True_Color
+   --    (NC : not null access constant Context)
+   --    return Boolean;
+   --  Can we emit 24-bit, three-channel RGB foregrounds and backgrounds?
+
+   --  function Can_Change_Color
+   --    (NC : not null access constant Context)
+   --    return Boolean
+   --  Can we directly specify RGB values per cell, or only use palettes?
+   --
+   --  function Can_Fade
+   --    (NC : not null access constant Context)
+   --    return Boolean
+   --  Can we fade? Fading requires either the "rgb" or "ccc" terminfo capability.
+   --
+   --  function Can_Open_Images
+   --    (NC : not null access constant Context)
+   --    return Boolean;
+   --  Can we load images? This requires being built against FFmpeg/OIIO.
+   --
+   --  function Can_Open_Videos
+   --    (NC : not null access constant Context)
+   --    return Boolean;
+   --  Can we load videos? This requires being built against FFmpeg.
+   --
+   --  function Can_UTF8
+   --    (NC : not null access constant Context)
+   --    return Boolean;
+   --  Is our encoding UTF-8? Requires LANG being set to a UTF8 locale.
+   --
+   --  function Can_Half_Block
+   --    (NC : not null access constant Context)
+   --    return Boolean
+   --  Can we reliably use Unicode halfblocks? Any Unicode implementation can.
+   --
+   --  function Can_Quadrant
+   --    (NC : not null access constant Context)
+   --    return Boolean
+   --  Can we reliably use Unicode quadrants?
+   --
+   --  function Can_Sextant
+   --    (NC : not null access constant Context)
+   --    return Boolean
+   --  Can we reliably use Unicode 13 sextants?
+   --
+   --  function Can_Braille
+   --    (NC : not null access constant Context)
+   --    return Boolean
+   --  Can we reliably use Unicode Braille?
+   --
+   --  function Can_Pixel
+   --    (NC : not null access constant Context)
+   --    return Boolean
+   --  Can we blit pixel-accurate bitmaps?
+
+   type Stats is record
+      Renders            : Unsigned_64; --  successful ncpile_render() runs
+      Writeouts          : Unsigned_64; --  successful ncpile_rasterize() runs
+      Failed_Renders     : Unsigned_64; --  aborted renders, should be 0
+      Failed_Writeouts   : Unsigned_64; --  aborted writes
+      Raster_Bytes       : Unsigned_64; --  bytes emitted to ttyfp
+      Raster_Max_Bytes   : Integer_64;  --  max bytes emitted for a frame
+      Raster_Min_Bytes   : Integer_64;  --  min bytes emitted for a frame
+      Render_Ns          : Unsigned_64; --  nanoseconds spent rendering
+      Render_Max_Ns      : Integer_64;  --  max ns spent in render for a frame
+      Render_Min_Ns      : Integer_64;  --  min ns spent in render for a frame
+      Raster_Ns          : Unsigned_64; --  nanoseconds spent rasterizing
+      Raster_Max_Ns      : Integer_64;  --  max ns spent in raster for a frame
+      Raster_Min_Ns      : Integer_64;  --  min ns spent in raster for a frame
+      Writeout_Ns        : Unsigned_64; --  nanoseconds spent writing frames to terminal
+      Writeout_Max_Ns    : Integer_64;  --  max ns spent writing out a frame
+      Writeout_Min_Ns    : Integer_64;  --  min ns spent writing out a frame
+      Cell_Elisions      : Unsigned_64; --  cells we elided entirely thanks to damage maps
+      Cell_Emissions     : Unsigned_64; --  total number of cells emitted to terminal
+      FG_Elisions        : Unsigned_64; --  RGB fg elision count
+      FG_Emissions       : Unsigned_64; --  RGB fg emissions
+      BG_Elisions        : Unsigned_64; --  RGB bg elision count
+      BG_Emissions       : Unsigned_64; --  RGB bg emissions
+      Default_Emissions  : Unsigned_64; --  default color was emitted
+      Default_Elisions   : Unsigned_64; --  default color was elided
+      Refreshes          : Unsigned_64; --  refresh requests (non-optimized redraw)
+      Sprixel_Emissions  : Unsigned_64; --  sprixel draw count
+      Sprixel_Elisions   : Unsigned_64; --  sprixel elision count
+      Sprixel_Bytes      : Unsigned_64; --  sprixel bytes emitted
+      App_Sync_Updates   : Unsigned_64; --  how many application-synchronized updates?
+      Input_Errors       : Unsigned_64; --  errors processing control sequences/utf8
+      Input_Events       : Unsigned_64; --  characters returned to userspace
+      HPA_Gratuitous     : Unsigned_64; --  unnecessary hpas issued
+      Cell_Geo_Changes   : Unsigned_64; --  cell geometry changes (resizes)
+      Pixel_Geo_Changes  : Unsigned_64; --  pixel geometry changes (font resize)
+   end record
+      with Convention => C;
+
+   function Stats_Alloc
+      (NC : not null access constant Context)
+      return access Stats
+   with Import, Convention => C, External_Name => "notcurses_stats_alloc";
+   --  Allocate an ncstats object. Use this rather than allocating your own, since
+   --  future versions of Notcurses might enlarge this structure.
+
+   procedure Get_Stats
+      (NC : not null access Context;
+       St : not null access Stats)
+   with Import, Convention => C, External_Name => "notcurses_stats";
+   --  Acquire an atomic snapshot of the Notcurses object's stats.
+
+   procedure Stats_Reset
+      (NC : not null access Context;
+       St : access Stats)
+   with Import, Convention => C, External_Name => "notcurses_stats_reset";
+
+   function Plane_Resize
+      (N : access Plane,
+       Keep_Y : int,
+       Keep_X : int,
+       Keep_Len_Y : unsigned,
+       Keep_Len_X : unsigned,
+       Y_Off : int,
+       X_Off : int,
+       Y_Len : unsigned,
+       X_Len : unsigned);
 private
 
    type Context is null record;
