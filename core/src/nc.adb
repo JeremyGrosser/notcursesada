@@ -100,4 +100,36 @@ package body NC is
       return 1;
    end Plane_Descendant_P;
 
+   procedure Plane_Move_Top
+      (N : not null access Plane)
+   is
+      Status : Interfaces.C.int;
+   begin
+      Status := Plane_Move_Below (N, null);
+   end Plane_Move_Top;
+
+   procedure Plane_Move_Bottom
+      (N : not null access Plane)
+   is
+      Status : Interfaces.C.int;
+   begin
+      Status := Plane_Move_Above (N, null);
+   end Plane_Move_Bottom;
+
+   procedure Plane_Move_Family_Top
+      (N : not null access Plane)
+   is
+      Status : Interfaces.C.int;
+   begin
+      Status := Plane_Move_Family_Below (N, null);
+   end Plane_Move_Family_Top;
+
+   procedure Plane_Move_Family_Bottom
+      (N : not null access Plane)
+   is
+      Status : Interfaces.C.int;
+   begin
+      Status := Plane_Move_Family_Above (N, null);
+   end Plane_Move_Family_Bottom;
+
 end NC;

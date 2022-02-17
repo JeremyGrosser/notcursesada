@@ -1136,6 +1136,108 @@ package NC is
        return Interfaces.C.int
    with Inline;
 
+   --  Splice Plane N out of the z-buffer, and reinsert it above Above.
+   --  Returns non-zero if N is already in the desired location. N and Above
+   --  must not be the same plane. If Above is null, N is moved to the bottom
+   --  of its pile.
+   function Plane_Move_Above
+      (N     : not null access Plane;
+       Above : access Plane)
+       return Interfaces.C.int
+   with Pre => Above /= N,
+        Import, Convention => C, External_Name => "ncplane_move_above";
+
+   --  Splice Plane N out of the z-buffer, and reinsert it below Below.
+   --  Returns non-zero if N is already in the desired location. N and Below
+   --  must not be the same plane. If Below is null, N is moved to the top of
+   --  its pile.
+   function Plane_Move_Below
+      (N     : not null access Plane;
+       Below : access Plane)
+       return Interfaces.C.int
+   with Pre => Below /= N,
+        Import, Convention => C, External_Name => "ncplane_move_below";
+
+   procedure Plane_Move_Top
+      (N : not null access Plane)
+   with Inline;
+
+   procedure Plane_Move_Bottom
+      (N : not null access Plane)
+   with Inline;
+
+   --  Splice Plane N and its bound planes out of the z-buffer, and reinsert
+   --  them above or below Target. Relative order will be maintained between
+   --  the reinserted planes. For a plane E bound to C, with z-ordering A B C D
+   --  E, moving the C family to the top results in C E A B D, while moving it
+   --  to the bottom results in A B D C E.
+   function Plane_Move_Family_Above
+      (N      : not null access Plane;
+       Target : access Plane)
+      return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_move_family_above";
+
+   function Plane_Move_Family_Below
+      (N      : not null access Plane;
+       Target : access Plane)
+      return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_move_family_below";
+
+   procedure Plane_Move_Family_Top
+      (N : not null access Plane)
+   with Inline;
+
+   procedure Plane_Move_Family_Bottom
+      (N : not null access Plane)
+   with Inline;
+
+   --  Return the plane below this one, or null if this is at the bottom.
+   function Plane_Below
+      (N : not null access Plane)
+      return access Plane
+   with Import, Convention => C, External_Name => "ncplane_below";
+
+   --  Return the plane above this one, or null if this is at the top.
+   function Plane_Above
+      (N : not null access Plane)
+      return access Plane
+   with Import, Convention => C, External_Name => "ncplane_above";
+
+   --  Effect R scroll events on the plane N. Returns an error if N is not a
+   --  scrolling plane, and otherwise returns the number of lines scrolled.
+   function Plane_Scroll_Up
+      (N : not null access Plane;
+       R : Interfaces.C.int)
+       return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_scrollup";
+
+
+   --  Scroll N up until Child is no longer hidden beneath it. Returns an error
+   --  if Child is not a child of N, or N is not scrolling, or Child is fixed.
+   --  Returns the number of scrolling events otherwise (might be 0).  If the
+   --  child plane is not fixed, it will likely scroll as well.
+   function Plane_Scroll_Up_Child
+      (N     : not null access Plane;
+       Child : not null access Plane)
+       return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_scrollup_child";
+
+   --  Rotate the plane π/2 radians clockwise or counterclockwise. This cannot
+   --  be performed on arbitrary planes, because glyphs cannot be arbitrarily
+   --  rotated. The glyphs which can be rotated are limited: line-drawing
+   --  characters, spaces, half blocks, and full blocks. The plane must have an
+   --  even number of columns. Use the ncvisual rotation for a more flexible
+   --  approach.
+   function Plane_Rotate_CW
+      (N : not null access Plane)
+      return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_rotate_cw";
+
+   function Plane_Rotate_CCW
+      (N : not null access Plane)
+      return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_rotate_ccw";
+
 private
 
    type Context is null record;
