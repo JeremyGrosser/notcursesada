@@ -25,6 +25,120 @@ package NC is
       Scale_Scale_Hires)
    with Convention => C;
 
+   --  An nccell corresponds to a single character cell on some plane, which can be
+   --  occupied by a single grapheme cluster (some root spacing glyph, along with
+   --  possible combining characters, which might span multiple columns). At any
+   --  cell, we can have a theoretically arbitrarily long UTF-8 EGC, a foreground
+   --  color, a background color, and an attribute set. Valid grapheme cluster
+   --  contents include:
+   --
+   --   * A NUL terminator,
+   --   * A single control character, followed by a NUL terminator,
+   --   * At most one spacing character, followed by zero or more nonspacing
+   --     characters, followed by a NUL terminator.
+   --
+   --  Multi-column characters can only have a single style/color throughout.
+   --  Existence is suffering, and thus wcwidth() is not reliable. It's just
+   --  quoting whether or not the EGC contains a "Wide Asian" double-width
+   --  character. This is set for some things, like most emoji, and not set for
+   --  other things, like cuneiform. True display width is a *function of the
+   --  font and terminal*. Among the longest Unicode codepoints is
+   --
+   --     U+FDFD ARABIC LIGATURE BISMILLAH AR-RAHMAN AR-RAHEEM ﷽
+   --
+   --  wcwidth() rather optimistically claims this most exalted glyph to occupy
+   --  a single column. BiDi text is too complicated for me to even get into here.
+   --  Be assured there are no easy answers; ours is indeed a disturbing Universe.
+   --
+   --  Each nccell occupies 16 static bytes (128 bits). The surface is thus ~1.6MB
+   --  for a (pretty large) 500x200 terminal. At 80x43, it's less than 64KB.
+   --  Dynamic requirements (the egcpool) can add up to 16MB to an ncplane, but
+   --  such large pools are unlikely in common use.
+   --
+   --  We implement some small alpha compositing. Foreground and background both
+   --  have two bits of inverted alpha. The actual grapheme written to a cell is
+   --  the topmost non-zero grapheme. If its alpha is 00, its foreground color is
+   --  used unchanged. If its alpha is 10, its foreground color is derived entirely
+   --  from cells underneath it. Otherwise, the result will be a composite.
+   --  Likewise for the background. If the bottom of a coordinate's zbuffer is
+   --  reached with a cumulative alpha of zero, the default is used. In this way,
+   --  a terminal configured with transparent background can be supported through
+   --  multiple occluding ncplanes. A foreground alpha of 11 requests high-contrast
+   --  text (relative to the computed background). A background alpha of 11 is
+   --  currently forbidden.
+   --
+   --  Default color takes precedence over palette or RGB, and cannot be used with
+   --  transparency. Indexed palette takes precedence over RGB. It cannot
+   --  meaningfully set transparency, but it can be mixed into a cascading color.
+   --  RGB is used if neither default terminal colors nor palette indexing are in
+   --  play, and fully supports all transparency options.
+   --
+   --  This structure is exposed only so that most functions can be inlined. Do not
+   --  directly modify or access the fields of this structure; use the API.
+   type Cell is record
+      --  These 32 bits, together with the associated plane's associated egcpool,
+      --  completely define this cell's EGC. Unless the EGC requires more than four
+      --  bytes to encode as UTF-8, it will be inlined here. If more than four bytes
+      --  are required, it will be spilled into the egcpool. In either case, there's
+      --  a NUL-terminated string available without copying, because (1) the egcpool
+      --  is all NUL-terminated sequences and (2) the fifth byte of this struct (the
+      --  gcluster_backstop field, see below) is guaranteed to be zero, as are any
+      --  unused bytes in gcluster.
+      --
+      --  The gcluster + gcluster_backstop thus form a valid C string of between 0
+      --  and 4 non-NUL bytes. Interpreting them in this fashion requires that
+      --  gcluster be stored as a little-endian number (strings have no byte order).
+      --  This gives rise to three simple rules:
+      --
+      --   * when storing to gcluster from a numeric, always use htole()
+      --   * when loading from gcluster for numeric use, always use htole()
+      --   * when referencing gcluster as a string, always use a pointer cast
+      --
+      --  Uses of gcluster ought thus always have exactly one htole() or pointer
+      --  cast associated with them, and we otherwise always work as host-endian.
+      --
+      --  A spilled EGC is indicated by the value 0x01XXXXXX. This cannot alias a
+      --  true supra-ASCII EGC, because UTF-8 only encodes bytes <= 0x80 when they
+      --  are single-byte ASCII-derived values. The XXXXXX is interpreted as a 24-bit
+      --  index into the egcpool. These pools may thus be up to 16MB.
+      --
+      --  The cost of this scheme is that the character 0x01 (SOH) cannot be encoded
+      --  in a nccell, which we want anyway. It must not be allowed through the API,
+      --  or havoc will result.
+      GCluster          : Unsigned_32 := 0; --  4B → 4B little endian EGC
+      GCluster_Backstop : Unsigned_8 := 0;  --  1B → 5B (8 bits of zero)
+      --  we store the column width in this field. for a multicolumn EGC of N
+      --  columns, there will be N nccells, and each has a width of N...for now.
+      --  eventually, such an EGC will set more than one subsequent cell to
+      --  WIDE_RIGHT, and this won't be necessary. it can then be used as a
+      --  bytecount. see #1203. FIXME iff width >= 2, the cell is part of a
+      --  multicolumn glyph. whether a cell is the left or right side of the glyph
+      --  can be determined by checking whether ->gcluster is zero.
+      Width             : Unsigned_8 := 0;  --  1B → 6B (8 bits of EGC column width)
+      Style_Mask        : Unsigned_16 := 0; --  2B → 8B (16 bits of NCSTYLE_* attributes)
+      --  (channels & 0x8000000000000000ull): blitted to upper-left quadrant
+      --  (channels & 0x4000000000000000ull): foreground is *not* "default color"
+      --  (channels & 0x3000000000000000ull): foreground alpha (2 bits)
+      --  (channels & 0x0800000000000000ull): foreground uses palette index
+      --  (channels & 0x0400000000000000ull): blitted to upper-right quadrant
+      --  (channels & 0x0200000000000000ull): blitted to lower-left quadrant
+      --  (channels & 0x0100000000000000ull): blitted to lower-right quadrant
+      --  (channels & 0x00ffffff00000000ull): foreground in 3x8 RGB (rrggbb) / pindex
+      --  (channels & 0x0000000080000000ull): reserved, must be 0
+      --  (channels & 0x0000000040000000ull): background is *not* "default color"
+      --  (channels & 0x0000000030000000ull): background alpha (2 bits)
+      --  (channels & 0x0000000008000000ull): background uses palette index
+      --  (channels & 0x0000000007000000ull): reserved, must be 0
+      --  (channels & 0x0000000000ffffffull): background in 3x8 RGB (rrggbb) / pindex
+      --  At render time, these 24-bit values are quantized down to terminal
+      --  capabilities, if necessary. There's a clear path to 10-bit support should
+      --  we one day need it, but keep things cagey for now. "default color" is
+      --  best explained by color(3NCURSES). ours is the same concept. until the
+      --  "not default color" bit is set, any color you load will be ignored.
+      Channels          : Unsigned_64 := 0; --  + 8B == 16B
+   end record
+      with Convention => C;
+
    --  These log levels consciously map cleanly to those of libav; Notcurses
    --  itself does not use this full granularity. The log level does not affect
    --  the opening and closing banners, which can be disabled via the
@@ -864,15 +978,62 @@ package NC is
    with Import, Convention => C, External_Name => "notcurses_stats_reset";
 
    function Plane_Resize
-      (N : access Plane,
-       Keep_Y : int,
-       Keep_X : int,
-       Keep_Len_Y : unsigned,
-       Keep_Len_X : unsigned,
-       Y_Off : int,
-       X_Off : int,
-       Y_Len : unsigned,
-       X_Len : unsigned);
+      (N          : access Plane;
+       Keep_Y     : Interfaces.C.int;
+       Keep_X     : Interfaces.C.int;
+       Keep_Len_Y : Interfaces.C.unsigned;
+       Keep_Len_X : Interfaces.C.unsigned;
+       Y_Off      : Interfaces.C.int;
+       X_Off      : Interfaces.C.int;
+       Y_Len      : Interfaces.C.unsigned;
+       X_Len      : Interfaces.C.unsigned)
+       return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_resize";
+
+   function Plane_Resize_Simple
+      (N     : access Plane;
+       Y_Len : Interfaces.C.unsigned;
+       X_Len : Interfaces.C.unsigned)
+       return Interfaces.C.int
+   with Inline;
+
+   function Plane_Destroy
+      (N : access Plane)
+      return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_destroy";
+
+   procedure Cell_Init
+      (C : access Cell)
+   with Inline;
+
+   function Cell_Load
+      (N        : access Plane;
+       C        : access Cell;
+       GCluster : chars_ptr)
+       return Interfaces.C.int
+   with Import, Convention => C, External_Name => "nccell_load";
+
+   function Cell_Prime
+      (N          : access Plane;
+       C          : access Cell;
+       GCluster   : chars_ptr;
+       Style_Mask : Unsigned_16;
+       Channels   : Unsigned_64)
+       return Interfaces.C.int
+   with Inline;
+
+   function Cell_Duplicate
+      (N       : access Plane;
+       Target  : access Cell;
+       C       : access constant Cell)
+       return Interfaces.C.int
+   with Import, Convention => C, External_Name => "nccell_duplicate";
+
+   procedure Cell_Release
+      (N : access Plane;
+       C : access Cell)
+   with Import, Convention => C, External_Name => "nccell_release";
+
 private
 
    type Context is null record;

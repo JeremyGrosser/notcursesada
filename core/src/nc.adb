@@ -36,4 +36,40 @@ package body NC is
        return Status_Code
    is (Mice_Enable (N, Mouse_Event_Mask'(others => False)));
 
+   function Plane_Resize_Simple
+      (N : access Plane;
+       Y_Len, X_Len : Interfaces.C.unsigned)
+       return Interfaces.C.int
+   is
+      use Interfaces.C;
+      Old_Y, Old_X : aliased unsigned;
+      Keep_Len_Y, Keep_Len_X : unsigned;
+   begin
+      Dimensions (N, Old_Y'Access, Old_X'Access);
+      Keep_Len_Y := (if Old_Y > Y_Len then Y_Len else Old_Y);
+      Keep_Len_X := (if Old_X > X_Len then X_Len else Old_X);
+      return Plane_Resize (N, 0, 0, Keep_Len_Y, Keep_Len_X, 0, 0, Y_Len, X_Len);
+   end Plane_Resize_Simple;
+
+   procedure Cell_Init
+      (C : access Cell)
+   is
+   begin
+      C.all := (others => <>);
+   end Cell_Init;
+
+   function Cell_Prime
+      (N          : access Plane;
+       C          : access Cell;
+       GCluster   : chars_ptr;
+       Style_Mask : Unsigned_16;
+       Channels   : Unsigned_64)
+       return Interfaces.C.int
+   is
+   begin
+      C.Style_Mask := Style_Mask;
+      C.Channels := Channels;
+      return Cell_Load (N, C, GCluster);
+   end Cell_Prime;
+
 end NC;
