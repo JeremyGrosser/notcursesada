@@ -84,4 +84,20 @@ package body NC is
       return Plane_Move_YX (N, OY + Y, OX + X);
    end Plane_Move_Relative;
 
+   function Plane_Descendant_P
+      (N        : access constant Plane;
+       Ancestor : access constant Plane)
+       return Interfaces.C.int
+   is
+      Parent : access constant Plane := Plane_Parent_Constant (N);
+   begin
+      while Parent /= Ancestor loop
+         if Plane_Parent_Constant (Parent) = Parent then
+            return 0;
+         end if;
+         Parent := Plane_Parent_Constant (Parent);
+      end loop;
+      return 1;
+   end Plane_Descendant_P;
+
 end NC;

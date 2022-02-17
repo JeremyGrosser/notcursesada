@@ -1102,6 +1102,40 @@ package NC is
        return Interfaces.C.int
    with Inline;
 
+   --  Get the origin of plane N relative to its pile. Either or both of X and
+   --  Y may be null.
+   procedure Plane_Absolute_YX
+      (N    : not null access constant Plane;
+       Y, X : access Interfaces.C.int)
+   with Import, Convention => C, External_Name => "ncplane_abs_yx";
+
+   function Plane_Absolute_Y
+      (N : access constant Plane)
+      return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_abs_y";
+
+   function Plane_Absolute_X
+      (N : access constant Plane)
+      return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_abs_x";
+
+   --  Get the plane to which the plane N is bound, if any.
+   function Plane_Parent
+      (N : not null access Plane)
+      return access Plane
+   with Import, Convention => C, External_Name => "ncplane_parent";
+
+   function Plane_Parent_Constant
+      (N : not null access constant Plane)
+      return access constant Plane
+   with Import, Convention => C, External_Name => "ncplane_parent_const";
+
+   function Plane_Descendant_P
+      (N        : access constant Plane;
+       Ancestor : access constant Plane)
+       return Interfaces.C.int
+   with Inline;
+
 private
 
    type Context is null record;
