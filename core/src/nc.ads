@@ -1013,6 +1013,7 @@ package NC is
        return Interfaces.C.int
    with Import, Convention => C, External_Name => "nccell_load";
 
+   --  Cell_Load, plus blast the styling with Style_Mask and Channels.
    function Cell_Prime
       (N          : access Plane;
        C          : access Cell;
@@ -1022,6 +1023,8 @@ package NC is
        return Interfaces.C.int
    with Inline;
 
+   --  Duplicate C into Target; both must be/will be bound to N. Returns -1 on
+   --  failure, and 0 on success.
    function Cell_Duplicate
       (N       : access Plane;
        Target  : access Cell;
@@ -1029,10 +1032,75 @@ package NC is
        return Interfaces.C.int
    with Import, Convention => C, External_Name => "nccell_duplicate";
 
+   --  Release resources held by the nccell C.
    procedure Cell_Release
       (N : access Plane;
        C : access Cell)
    with Import, Convention => C, External_Name => "nccell_release";
+
+   --  Set the Plane's base Cell to C. The base cell is used for purposes of
+   --  rendering anywhere that the Plane's GCluster is 0. Note that the base
+   --  cell is not affected by Plane_Erase. C must not be a secondary cell from
+   --  a multicolumn EGC.
+   function Plane_Set_Base_Cell
+      (N : access Plane;
+       C : access constant Cell)
+       return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_set_base_cell";
+
+   --  Set the Plane's base Cell. It will be used for purposes of rendering
+   --  anywhere that the Plane's GCluster is 0. Note that the base cell is not
+   --  affected by Plane_Erase. EGC must be an extended grapheme cluster.
+   --  Returns the number of bytes copied out of GCluster, or -1 on failure.
+   function Plane_Set_Base
+      (N          : access Plane;
+       EGC        : chars_ptr;
+       Style_Mask : Unsigned_16;
+       Channels   : Unsigned_64)
+       return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_set_base";
+
+   --  Extract the ncplane's base nccell into C. The reference is invalidated
+   --  if N is destroyed
+   function Plane_Base
+      (N : access Plane;
+       C : access Cell)
+       return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_base";
+
+   --  Get the origin of plane N relative to its bound plane, or pile (if N is
+   --  a root plane). To get absolute coordinates, use Abs_YX
+   procedure Plane_YX
+      (N    : not null access constant Plane;
+       Y, X : access Interfaces.C.int)
+   with Import, Convention => C, External_Name => "ncplane_yx";
+
+   function Plane_Y
+      (N : access constant Plane)
+      return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_y";
+
+   function Plane_X
+      (N : access constant Plane)
+      return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_x";
+
+   --  Move this plane relative to the standard plane, or the plane to which it
+   --  is bound (if it is bound to a plane). It is an error to attempt to move
+   --  the standard plane.
+   function Plane_Move_YX
+      (N    : access Plane;
+       Y, X : Interfaces.C.int)
+       return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_move_yx";
+
+   --  Move this plane relative to its current location. Negative values move
+   --  up and left, respectively. Pass 0 to hold an axis constant.
+   function Plane_Move_Relative
+      (N    : not null access Plane;
+       Y, X : Interfaces.C.int)
+       return Interfaces.C.int
+   with Inline;
 
 private
 

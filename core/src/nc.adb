@@ -72,4 +72,16 @@ package body NC is
       return Cell_Load (N, C, GCluster);
    end Cell_Prime;
 
+   function Plane_Move_Relative
+      (N : not null access Plane;
+       Y, X : Interfaces.C.int)
+       return Interfaces.C.int
+   is
+      use Interfaces.C;
+      OY, OX : aliased Interfaces.C.int;
+   begin
+      Plane_YX (N, OY'Access, OX'Access);
+      return Plane_Move_YX (N, OY + Y, OX + X);
+   end Plane_Move_Relative;
+
 end NC;
