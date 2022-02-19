@@ -5,4 +5,5 @@ library project Libnotcurses is
     for Library_Dir use "lib";
     for Library_Version use "3";
     for Externally_Built use "true";
+    for Create_Missing_Dirs use "true";
 end Libnotcurses;

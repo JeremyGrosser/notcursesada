@@ -1238,6 +1238,89 @@ package NC is
       return Interfaces.C.int
    with Import, Convention => C, External_Name => "ncplane_rotate_ccw";
 
+   --  Retrieve the current contents of the cell under the cursor. The EGC is
+   --  returned, or null on error. This EGC must be free()d by the caller.
+   function Plane_At_Cursor
+      (N          : not null access Plane;
+       Style_Mask : access Style;
+       Channels   : access Unsigned_64)
+       return chars_ptr
+   with Import, Convention => C, External_Name => "ncplane_at_cursor";
+
+   --  Retrieve the current contents of the cell under the cursor into C. This
+   --  cell is invalidated if the associated plane is destroyed. Returns the
+   --  number of bytes in the EGC or -1 on error.
+   function Plane_At_Cursor_Cell
+      (N : not null access Plane;
+       C : not null access Cell)
+       return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_at_cursor_cell";
+
+   --  Retrieve the current contents of the specified cell. The EGC is returned, or
+   --  null on error. This EGC must be free()d by the caller. The stylemask and
+   --  channels are written to 'stylemask' and 'channels', respectively. The return
+   --  represents how the cell will be used during rendering, and thus integrates
+   --  any base cell where appropriate. If called upon the secondary columns of a
+   --  wide glyph, the EGC will be returned (i.e. this function does not distinguish
+   --  between the primary and secondary columns of a wide glyph). If called on a
+   --  sprixel plane, its control sequence is returned for all valid locations.
+   function Plane_At_YX
+      (N          : not null access constant Plane;
+       Y, X       : Interfaces.C.int;
+       Style_Mask : access Style;
+       Channels   : access Unsigned_64)
+       return chars_ptr
+   with Import, Convention => C, External_Name => "ncplane_at_yx";
+
+   --  Retrieve the current contents of the specified cell into C. This cell is
+   --  invalidated if the associated plane is destroyed. Returns the number of
+   --  bytes in the EGC, or -1 on error. Unlike Plane_At_YX, when called upon
+   --  the secondary columns of a wide glyph, the return can be distinguished from
+   --  the primary column (nccell_wide_right_p(c) will return true). It is an
+   --  error to call this on a sprixel plane (unlike Plane_At_YX).
+   function Plane_At_YX_Cell
+      (N    : not null access Plane;
+       Y, X : Interfaces.C.int;
+       C    : not null access Cell)
+       return Interfaces.C.int
+   with Import, Convention => C, External_Name => "ncplane_at_yx_cell";
+
+   --  Create a flat string from the EGCs of the selected region of the ncplane
+   --  N. Start at the plane's (Begin_Y, Begin_X) coordinate (which must lie on
+   --  the plane), continuing for (Length_Y, Length_X) cells. Either or both of
+   --  Length_Y and Length_X can be specified as 0 to go through the boundary
+   --  of the plane. -1 can be specified for Begin_X or Begin_Y to use the
+   --  current cursor location.
+   function Plane_Contents
+      (N                  : not null access Plane;
+       Begin_Y, Begin_X   : Interfaces.C.int;
+       Length_Y, Length_X : Interfaces.C.int)
+       return chars_ptr
+   with Import, Convention => C, External_Name => "ncplane_contents";
+
+   --  Manipulate the opaque user pointer associated with this plane.
+   --  Plane_Set_User_Pointer returns the previous Address after replacing it
+   --  with Opaque. The other simply returns the Address.
+   function Plane_Set_User_Pointer
+      (N      : not null access Plane;
+       Opaque : System.Address)
+       return System.Address
+   with Import, Convention => C, External_Name => "ncplane_set_userptr";
+
+   function Plane_User_Pointer
+      (N : not null access Plane)
+      return System.Address
+   with Import, Convention => C, External_Name => "ncplane_userptr";
+
+   --  Find the center coordinate of a plane, preferring the top/left in the
+   --  case of an even number of rows/columns (in such a case, there will be
+   --  one more cell to the bottom/right of the center than the top/left). The
+   --  center is then modified relative to the plane's origin.
+   procedure Plane_Center_Absolute
+      (N    : not null access constant Plane;
+       Y, X : access Interfaces.C.int)
+   with Import, Convention => C, External_Name => "ncplane_center_abs";
+
 private
 
    type Context is null record;
