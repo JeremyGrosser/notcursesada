@@ -5,7 +5,6 @@
 --
 with Interfaces;
 with Interfaces.C.Strings;
-with Interfaces.C_Streams;
 with Interfaces.C;
 with Notcurses_Thin;
 

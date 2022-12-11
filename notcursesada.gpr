@@ -18,7 +18,10 @@ project Notcursesada is
    for Library_Kind use Library_Type;
 
    package Compiler is
-      for Default_Switches ("Ada") use Notcursesada_Config.Ada_Compiler_Switches;
+      for Default_Switches ("Ada") use Notcursesada_Config.Ada_Compiler_Switches & (
+         "-gnatyM120",
+         "-gnatwI"
+      );
    end Compiler;
 
    package Binder is

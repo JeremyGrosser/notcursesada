@@ -88,17 +88,23 @@ package body Notcurses.Plane is
        Y, X  : Integer := -1)
    is
       use Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
-      Chars  : aliased chars_ptr := New_String (Encode (Str));
+      EGC : aliased chars_ptr;
+      PY : int := int (Y);
+      PX : int := int (X);
       Result : int;
    begin
-      Result := Thin.ncplane_putegc_yx
-         (n       => Plane,
-          y       => int (Y),
-          x       => int (X),
-          gclust  => Chars,
-          sbytes  => null);
-
-      Free (Chars);
+      for Ch of Str loop
+         EGC := New_String (Encode ("" & Ch));
+         Result := Thin.ncplane_putegc_yx
+            (n       => Plane,
+             y       => PY,
+             x       => PX,
+             gclust  => EGC,
+             sbytes  => null);
+         Free (EGC);
+         PY := -1;
+         PX := -1;
+      end loop;
 
       if Result < 0 then
          raise Notcurses_Error with "Failed to put Wide_Wide_String on plane";
@@ -177,9 +183,9 @@ package body Notcurses.Plane is
           sbytes  => null);
 
       Free (Chars);
-      --  if Result < 0 then
-      --     raise Notcurses_Error with "Failed to put Wide_Wide_String on plane";
-      --  end if;
+      if Result < 0 then
+         raise Notcurses_Error with "Failed to put Wide_Wide_String on plane";
+      end if;
    end Put_Aligned;
 
    procedure Fill

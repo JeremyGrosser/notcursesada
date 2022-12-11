@@ -14,6 +14,7 @@ package Notcurses.Visual is
       Add_Alpha            : Boolean := False; --  transcolor is in effect
       Child_Plane          : Boolean := False; --  interpret n as parent
       No_Interpolate       : Boolean := False; --  non-interpolative scaling
+      Reserved             : Boolean := False;
    end record
       with Size => 64;
    for Visual_Flags use record
@@ -24,18 +25,34 @@ package Notcurses.Visual is
       Add_Alpha            at 0 range 4 .. 4;
       Child_Plane          at 0 range 5 .. 5;
       No_Interpolate       at 0 range 6 .. 6;
+      Reserved             at 0 range 7 .. 63;
    end record;
 
    type Visual_Options is record
       Plane             : Notcurses_Plane;
-      Scaling           : Scale_Mode := None;      --  ignored if Plane is provided
-      Position          : Coordinate := (0, 0);    --  Offset the visual from the origin of Plane (or Standard_Plane if Plane is null)
-      Origin            : Coordinate := (0, 0);    --  Mask the visual starting at Origin
-      Size              : Coordinate := (0, 0);    --  Size of the Mask, or (0, 0) if no mask should be applied
-      Offset            : Coordinate := (0, 0);    --  pixel offsets within the cell
-      Blit              : Blitter := Blit_Default; --  Glyph set to use. Default selects the best available for your terminal
+
+      Scaling           : Scale_Mode := None;
+      --  ignored if Plane is provided
+
+      Position          : Coordinate := (0, 0);
+      --  Offset the visual from the origin of Plane (or Standard_Plane if Plane is null)
+
+      Origin            : Coordinate := (0, 0);
+      --  Mask the visual starting at Origin
+
+      Size              : Coordinate := (0, 0);
+      --  Size of the Mask, or (0, 0) if no mask should be applied
+
+      Offset            : Coordinate := (0, 0);
+      --  pixel offsets within the cell
+
+      Blit              : Blitter := Blit_Default;
+      --  Glyph set to use. Default selects the best available for your terminal
+
       Flags             : Visual_Flags := (others => False);
-      Transparent_Color : Interfaces.Unsigned_32;  --  if Flags.Add_Alpha, treat this color as transparent
+
+      Transparent_Color : Interfaces.Unsigned_32;
+      --  if Flags.Add_Alpha, treat this color as transparent
    end record;
 
    type Decode_Status is (Ok, End_Of_File, Error);
