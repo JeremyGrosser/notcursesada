@@ -1,8 +1,6 @@
-bin/
-obj/
-alire/
-config/
-*.ali
-*.o
-*.a
+bin
+obj
+lib
+alire
+config
 *.swp
