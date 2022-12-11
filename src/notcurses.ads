@@ -34,7 +34,7 @@ private
    Default_Options : aliased Thin.notcurses_options :=
       (termtype => Interfaces.C.Strings.Null_Ptr,
        loglevel => Thin.NCLOGLEVEL_ERROR,
-       flags    => 0,
+       flags    => Thin.NCOPTION_SUPPRESS_BANNERS,
        others   => 0);
 
    Default_Context : Notcurses_Context := null;
