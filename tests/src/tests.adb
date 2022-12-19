@@ -1,4 +1,3 @@
---  with Ada.Strings.UTF_Encoding.Wide_Wide_Strings; use Ada.Strings.UTF_Encoding.Wide_Wide_Strings;
 with Ada.Exceptions;
 with Ada.Text_IO;
 with Notcurses;
