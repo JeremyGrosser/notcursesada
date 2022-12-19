@@ -1,6 +1,5 @@
 with "config/notcursesada_config.gpr";
 with "notcurses_core.gpr";
-with "notcurses.gpr";
 
 project Notcursesada is
 

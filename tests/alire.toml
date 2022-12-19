@@ -1,4 +1,4 @@
-name = "notcurses_test"
+name = "tests"
 description = "Shiny new project"
 version = "0.1.0-dev"
 
@@ -6,8 +6,8 @@ authors = ["Jeremy Grosser"]
 maintainers = ["Jeremy Grosser <jeremy@synack.me>"]
 maintainers-logins = ["JeremyGrosser"]
 
-executables = ["notcurses_test"]
+executables = ["tests"]
 [[depends-on]]
-notcursesada = "^2.2.3"
+notcursesada = "~0.3.0"
 [[pins]]
 notcursesada = { path='..' }
