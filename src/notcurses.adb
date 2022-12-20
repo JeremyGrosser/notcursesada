@@ -11,7 +11,6 @@ with Interfaces.C.Strings;
 with Interfaces.C; use Interfaces.C;
 with System.OS_Interface; --  timespec
 with System;
-with Notcurses.Keys;
 
 package body Notcurses is
    function Initialize
@@ -596,7 +595,6 @@ package body Notcurses is
       (This : Context)
       return Input_Event
    is
-      use Notcurses.Keys;
       use type Interfaces.Unsigned_32;
 
       type ncinput is record
@@ -618,30 +616,33 @@ package body Notcurses is
           return Interfaces.Unsigned_32
       with Import, Convention => C, External_Name => "notcurses_get";
 
-      function Is_Synthetic
-         (Id : Interfaces.Unsigned_32)
-         return Boolean
-      is (Id in PRETERUNICODEBASE .. PRETERUNICODEBASE + 5000);
-
       I : aliased ncinput;
-      E : Input_Event;
    begin
       if notcurses_get (This, null, I'Access) = -1 then
          raise Program_Error;
       else
-         E.Id := Natural (I.id);
-         E.Pos := (Y => Integer (I.y), X => Integer (I.x));
-         E.Pixel_Offset := (Y => Integer (I.ypx), X => Integer (I.xpx));
-         E.Action := I.evtype;
-         E.Modifiers := I.modifiers;
-
-         if not Is_Synthetic (I.id) then
-            E.Ch := Wide_Wide_Character'Val (Natural (I.id));
-         else
-            E.Ch := Wide_Wide_Character'Val (0);
-         end if;
-         return E;
+         return Input_Event'(
+            Id             => Natural (I.id),
+            Pos            => (Y => Integer (I.y), X => Integer (I.x)),
+            Pixel_Offset   => (Y => Integer (I.ypx), X => Integer (I.xpx)),
+            Action         => I.evtype,
+            Modifiers      => I.modifiers);
       end if;
    end Get_Blocking;
+
+   function Is_Key_Event
+      (Event : Input_Event)
+      return Boolean
+   is (Event.Id in Notcurses_Keys.PRETERUNICODEBASE .. Notcurses_Keys.PRETERUNICODEBASE + 5000);
+
+   function To_Key
+      (Event : Input_Event)
+      return Notcurses_Keys.Key
+   is (Notcurses_Keys.Key'Enum_Val (Event.Id - Notcurses_Keys.PRETERUNICODEBASE));
+
+   function To_Wide_Wide_Character
+      (Event : Input_Event)
+      return Wide_Wide_Character
+   is (Wide_Wide_Character'Val (Event.Id));
 
 end Notcurses;

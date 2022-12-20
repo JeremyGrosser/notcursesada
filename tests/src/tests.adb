@@ -1,6 +1,7 @@
 with Ada.Exceptions;
 with Ada.Text_IO;
 with Notcurses;
+with Notcurses_Keys;
 
 procedure Tests is
    package NC renames Notcurses;
@@ -17,6 +18,7 @@ procedure Tests is
 
    Pos : NC.Coordinate := (0, 0);
    Vel : NC.Coordinate := (1, 1);
+   Ch  : Wide_Wide_Character;
 begin
    --  Context.Enable_Cursor (Context.Cursor);
    Child.Put ("Hello, ");
@@ -33,14 +35,18 @@ begin
 
    loop
       Event := Context.Get_Blocking;
-      exit when Event.Ch = 'q';
+      exit when Event.Id = Notcurses_Keys.NCKEY_ESC;
+      if not NC.Is_Key_Event (Event) then
+         Ch := NC.To_Wide_Wide_Character (Event);
+      end if;
+
       Debug.Erase;
       Debug.Put_String (Event'Image);
       Debug.New_Line;
-      Debug.Put_String (Wide_Wide_Character'Pos (Event.Ch)'Image);
+      Debug.Put_String (Wide_Wide_Character'Pos (Ch)'Image);
       Debug.New_Line;
-      if Event.Ch /= Wide_Wide_Character'Val (0) then
-         Debug.Put (Event.Ch, Background => NC.RGB (0, 255, 0));
+      if Ch /= Wide_Wide_Character'Val (0) then
+         Debug.Put (Ch, Background => NC.RGB (0, 255, 0));
          Debug.New_Line;
       end if;
       Context.Render;

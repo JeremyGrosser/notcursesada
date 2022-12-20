@@ -3,6 +3,8 @@
 --
 --  SPDX-License-Identifier: Apache-2.0
 --
+with Notcurses_Keys;
+
 package Notcurses
    with Preelaborate
 is
@@ -286,8 +288,7 @@ is
    end record;
 
    type Input_Event is record
-      Id             : Natural;
-      Ch             : Wide_Wide_Character;
+      Id             : Natural := 0;
       Pos            : Coordinate := (-1, -1);
       Action         : Input_Action := Unknown;
       Modifiers      : Input_Modifiers := (others => False);
@@ -297,6 +298,20 @@ is
    function Get_Blocking
       (This : Context)
       return Input_Event;
+
+   function Is_Key_Event
+      (Event : Input_Event)
+      return Boolean;
+
+   function To_Key
+      (Event : Input_Event)
+      return Notcurses_Keys.Key
+   with Pre => Is_Key_Event (Event);
+
+   function To_Wide_Wide_Character
+      (Event : Input_Event)
+      return Wide_Wide_Character
+   with Pre => not Is_Key_Event (Event);
 
 private
 
