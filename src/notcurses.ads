@@ -133,8 +133,20 @@ is
        Size : Coordinate);
 
    procedure Erase
-      (This : Plane;
-       Start, Size : Coordinate := Current_Position);
+      (This : Plane);
+
+   procedure Erase_Region
+      (This  : Plane;
+       Start : Coordinate := Current_Position;
+       Size  : Coordinate := (0, 0));
+
+   procedure Set_Scrolling
+      (This    : Plane;
+       Enabled : Boolean);
+
+   function Scrolling
+      (This : Plane)
+      return Boolean;
 
    procedure Reorder_Above
       (This  : Plane;
@@ -252,6 +264,39 @@ is
        Style      : Style_Mask := Default_Style;
        Foreground : Color := Default_Color;
        Background : Color := Default_Color);
+
+   procedure New_Line
+      (This : Plane)
+   with Pre => Scrolling (This);
+
+   type Input_Action is (Unknown, Press, Repeat, Release);
+   type Input_Modifiers is record
+      Shift, Alt, Ctrl, Super, Hyper, Meta, Caps_Lock, Num_Lock : Boolean;
+   end record
+      with Size => 32;
+   for Input_Modifiers use record
+      Shift       at 0 range 0 .. 0;
+      Alt         at 0 range 1 .. 1;
+      Ctrl        at 0 range 2 .. 2;
+      Super       at 0 range 3 .. 3;
+      Hyper       at 0 range 4 .. 4;
+      Meta        at 0 range 5 .. 5;
+      Caps_Lock   at 0 range 6 .. 6;
+      Num_Lock    at 0 range 7 .. 7;
+   end record;
+
+   type Input_Event is record
+      Id             : Natural;
+      Ch             : Wide_Wide_Character;
+      Pos            : Coordinate := (-1, -1);
+      Action         : Input_Action := Unknown;
+      Modifiers      : Input_Modifiers := (others => False);
+      Pixel_Offset   : Coordinate := (-1, -1);
+   end record;
+
+   function Get_Blocking
+      (This : Context)
+      return Input_Event;
 
 private
 

@@ -3,29 +3,48 @@ with Ada.Text_IO;
 with Notcurses;
 
 procedure Tests is
-   use type Notcurses.Coordinate;
+   package NC renames Notcurses;
+   use type NC.Coordinate;
+   use type NC.Input_Action;
 
-   NC    : constant Notcurses.Context := Notcurses.Initialize;
-   Root  : constant Notcurses.Plane := NC.Standard_Plane;
+   Context : constant NC.Context := NC.Initialize;
+   Root    : constant NC.Plane := Context.Standard_Plane;
 
-   Dim   : constant Notcurses.Coordinate := (1, 18);
-   Child : constant Notcurses.Plane := Root.Create_Plane (Size => Dim);
+   Dim   : constant NC.Coordinate := (1, 18);
+   Child : constant NC.Plane := Root.Create_Plane (Size => Dim);
+   Debug : constant NC.Plane := Root.Create_Plane (Size => (32, 80));
+   Event : NC.Input_Event;
 
-   Pos : Notcurses.Coordinate := (0, 0);
-   Vel : Notcurses.Coordinate := (1, 1);
+   Pos : NC.Coordinate := (0, 0);
+   Vel : NC.Coordinate := (1, 1);
 begin
-   --  NC.Enable_Cursor (NC.Cursor);
+   --  Context.Enable_Cursor (Context.Cursor);
    Child.Put ("Hello, ");
    Child.Put ("notcurses",
       Style =>
          (Bold       => True,
           Underline  => True,
           others     => False),
-      Foreground => Notcurses.RGB (16#FF#, 16#00#, 16#FF#));
+      Foreground => NC.RGB (16#FF#, 16#00#, 16#FF#));
    Child.Put ("!");
-   NC.Render;
+   Child.Erase;
+
+   Debug.Set_Scrolling (Enabled => True);
 
    loop
+      Event := Context.Get_Blocking;
+      exit when Event.Ch = 'q';
+      Debug.Erase;
+      Debug.Put_String (Event'Image);
+      Debug.New_Line;
+      Debug.Put_String (Wide_Wide_Character'Pos (Event.Ch)'Image);
+      Debug.New_Line;
+      if Event.Ch /= Wide_Wide_Character'Val (0) then
+         Debug.Put (Event.Ch, Background => NC.RGB (0, 255, 0));
+         Debug.New_Line;
+      end if;
+      Context.Render;
+
       Pos := Pos + Vel;
       if Pos.Y >= (Root.Dimensions.Y - Dim.Y) then
          Pos.Y := Root.Dimensions.Y - Dim.Y;
@@ -43,17 +62,17 @@ begin
          Vel.X := -Vel.X;
       end if;
 
-      Child.Move (Pos);
-      NC.Render;
-      delay 0.030;
+      --  Child.Move (Pos);
+      --  Context.Render;
+      --  delay 0.030;
    end loop;
 
    Child.Destroy;
-   NC.Stop;
+   Context.Stop;
 exception
    when E : others =>
       delay 1.0;
-      NC.Stop;
+      Context.Stop;
       delay 1.0;
       Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
 end Tests;

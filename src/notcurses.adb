@@ -9,7 +9,9 @@ with Ada.Characters.Conversions;
 with Interfaces.C_Streams;
 with Interfaces.C.Strings;
 with Interfaces.C; use Interfaces.C;
+with System.OS_Interface; --  timespec
 with System;
+with Notcurses.Keys;
 
 package body Notcurses is
    function Initialize
@@ -306,7 +308,7 @@ package body Notcurses is
           return int
       with Import, Convention => C, External_Name => "ncplane_resize";
 
-      Old : Coordinate := Dimensions (This);
+      Old : constant Coordinate := Dimensions (This);
       keepleny, keeplenx : unsigned;
    begin
       keepleny := unsigned (if Old.Y > Size.Y then Size.Y else Old.Y);
@@ -317,8 +319,19 @@ package body Notcurses is
    end Resize;
 
    procedure Erase
-      (This : Plane;
-       Start, Size : Coordinate := Current_Position)
+      (This : Plane)
+   is
+      procedure ncplane_erase
+         (n : Plane)
+      with Import, Convention => C, External_Name => "ncplane_erase";
+   begin
+      ncplane_erase (This);
+   end Erase;
+
+   procedure Erase_Region
+      (This  : Plane;
+       Start : Coordinate := Current_Position;
+       Size  : Coordinate := (0, 0))
    is
       function ncplane_erase_region
          (n : Plane;
@@ -336,7 +349,33 @@ package body Notcurses is
       then
          raise Program_Error;
       end if;
-   end Erase;
+   end Erase_Region;
+
+   procedure Set_Scrolling
+      (This    : Plane;
+       Enabled : Boolean)
+   is
+      function ncplane_set_scrolling
+         (n : Plane;
+          scrollp : unsigned)
+          return C_bool
+      with Import, Convention => C, External_Name => "ncplane_set_scrolling";
+      Ignore : C_bool with Unreferenced;
+   begin
+      Ignore := ncplane_set_scrolling (This, (if Enabled then 1 else 0));
+   end Set_Scrolling;
+
+   function Scrolling
+      (This : Plane)
+      return Boolean
+   is
+      function ncplane_scrolling_p
+         (n : Plane)
+         return C_bool
+      with Import, Convention => C, External_Name => "ncplane_scrolling_p";
+   begin
+      return Boolean (ncplane_scrolling_p (This));
+   end Scrolling;
 
    procedure Reorder_Above
       (This  : Plane;
@@ -545,5 +584,64 @@ package body Notcurses is
    begin
       Put (This, Ada.Characters.Conversions.To_Wide_Wide_String (Str), Pos, Style, Foreground, Background);
    end Put_String;
+
+   procedure New_Line
+      (This : Plane)
+   is
+   begin
+      Put_Character (This, ASCII.LF);
+   end New_Line;
+
+   function Get_Blocking
+      (This : Context)
+      return Input_Event
+   is
+      use Notcurses.Keys;
+      use type Interfaces.Unsigned_32;
+
+      type ncinput is record
+         id          : Interfaces.Unsigned_32;
+         y, x        : int;
+         utf8        : String (1 .. 5);
+         alt         : Boolean;
+         shift       : Boolean;
+         ctrl        : Boolean;
+         evtype      : Input_Action;
+         modifiers   : Input_Modifiers;
+         ypx, xpx    : int;
+      end record;
+
+      function notcurses_get
+         (n : Context;
+          ts : access System.OS_Interface.timespec;
+          ni : access ncinput)
+          return Interfaces.Unsigned_32
+      with Import, Convention => C, External_Name => "notcurses_get";
+
+      function Is_Synthetic
+         (Id : Interfaces.Unsigned_32)
+         return Boolean
+      is (Id in PRETERUNICODEBASE .. PRETERUNICODEBASE + 5000);
+
+      I : aliased ncinput;
+      E : Input_Event;
+   begin
+      if notcurses_get (This, null, I'Access) = -1 then
+         raise Program_Error;
+      else
+         E.Id := Natural (I.id);
+         E.Pos := (Y => Integer (I.y), X => Integer (I.x));
+         E.Pixel_Offset := (Y => Integer (I.ypx), X => Integer (I.xpx));
+         E.Action := I.evtype;
+         E.Modifiers := I.modifiers;
+
+         if not Is_Synthetic (I.id) then
+            E.Ch := Wide_Wide_Character'Val (Natural (I.id));
+         else
+            E.Ch := Wide_Wide_Character'Val (0);
+         end if;
+         return E;
+      end if;
+   end Get_Blocking;
 
 end Notcurses;
