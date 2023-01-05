@@ -25,6 +25,13 @@ package body Notcurses is
    is
       use Interfaces.C.Strings;
 
+      LC_ALL : constant int := 0;
+      function setlocale
+         (Category : int;
+          Locale   : String)
+          return chars_ptr
+      with Import, Convention => C, External_Name => "setlocale";
+
       type Options is record
          termtype    : chars_ptr;
          loglevel    : Log_Level;
@@ -39,7 +46,7 @@ package body Notcurses is
       with Import, Convention => C, External_Name => "notcurses_core_init";
 
       O : aliased constant Options :=
-         (termtype => New_String (Term_Type), --  leaks ¯\_(ツ)_/¯
+         (termtype => (if Term_Type = "" then Null_Ptr else New_String (Term_Type)),  --  leaks ¯\_(ツ)_/¯
           loglevel => Level,
           T => unsigned (Margin_Top),
           R => unsigned (Margin_Right),
@@ -47,6 +54,10 @@ package body Notcurses is
           L => unsigned (Margin_Left),
           flags => Flags);
    begin
+      if setlocale (LC_ALL, "") = Null_Ptr then
+         raise Program_Error with "setlocale(LC_ALL, "") failed";
+      end if;
+
       return notcurses_core_init
          (opts => O'Access,
           fp   => null);
