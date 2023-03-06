@@ -271,6 +271,15 @@ is
       (This : Plane)
    with Pre => Scrolling (This);
 
+   procedure Put_Line
+      (This       : Plane;
+       Str        : String;
+       Pos        : Coordinate := Current_Position;
+       Style      : Style_Mask := Default_Style;
+       Foreground : Color := Default_Color;
+       Background : Color := Default_Color)
+   with Pre => Scrolling (This);
+
    type Input_Action is (Unknown, Press, Repeat, Release);
    type Input_Modifiers is record
       Shift, Alt, Ctrl, Super, Hyper, Meta, Caps_Lock, Num_Lock : Boolean;

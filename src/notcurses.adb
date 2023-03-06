@@ -602,6 +602,19 @@ package body Notcurses is
       Put_Character (This, ASCII.LF);
    end New_Line;
 
+   procedure Put_Line
+      (This       : Plane;
+       Str        : String;
+       Pos        : Coordinate := Current_Position;
+       Style      : Style_Mask := Default_Style;
+       Foreground : Color := Default_Color;
+       Background : Color := Default_Color)
+   is
+   begin
+      Put_String (This, Str, Pos, Style, Foreground, Background);
+      New_Line (This);
+   end Put_Line;
+
    function Get_Blocking
       (This : Context)
       return Input_Event
