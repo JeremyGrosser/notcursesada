@@ -1,3 +1,4 @@
+with Ada.Wide_Wide_Characters.Handling;
 with Ada.Exceptions;
 with Ada.Text_IO;
 with Notcurses;
@@ -30,12 +31,14 @@ begin
       Foreground => NC.RGB (16#FF#, 16#00#, 16#FF#));
    Child.Put ("!");
    Child.Erase;
+   Context.Render;
+   delay 0.5;
 
    Debug.Set_Scrolling (Enabled => True);
 
    loop
       Event := Context.Get_Blocking;
-      exit when Event.Id = Notcurses_Keys.NCKEY_ESC;
+      --  exit when Event.Id = Notcurses_Keys.NCKEY_ESC;
       if not NC.Is_Key_Event (Event) then
          Ch := NC.To_Wide_Wide_Character (Event);
       end if;
@@ -45,8 +48,8 @@ begin
       Debug.New_Line;
       Debug.Put_String (Wide_Wide_Character'Pos (Ch)'Image);
       Debug.New_Line;
-      if Ch /= Wide_Wide_Character'Val (0) then
-         Debug.Put (Ch, Background => NC.RGB (0, 255, 0));
+      if not Ada.Wide_Wide_Characters.Handling.Is_Control (Ch) then
+         Debug.Put (Ch, Foreground => NC.RGB (0, 255, 0));
          Debug.New_Line;
       end if;
       Context.Render;
@@ -77,8 +80,8 @@ begin
    Context.Stop;
 exception
    when E : others =>
-      delay 1.0;
+      delay 10.0;
       Context.Stop;
-      delay 1.0;
+      delay 10.0;
       Ada.Text_IO.Put_Line (Ada.Exceptions.Exception_Information (E));
 end Tests;
